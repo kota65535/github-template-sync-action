@@ -16506,11 +16506,11 @@ const getInputs = async () => {
     templateSyncFile,
     dryRun,
     templateRepo: {
-      owner: templateRepo.owner,
+      owner: templateRepo.owner.login,
       name: templateRepo.name,
     },
   };
-  core.info(JSON.stringify(ret));
+  core.info(ret);
   return ret;
 };
 

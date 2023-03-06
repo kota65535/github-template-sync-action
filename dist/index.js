@@ -16325,12 +16325,13 @@ function setGitCredentials(token) {
 
 function commit(message) {
   setUserAsBot();
-  // try {
-  //   exec("git", ["diff", "--quiet"]);
-  //   return;
-  // } catch (e) {
-  //   // do nothing
-  // }
+  exec("git", ["status"]);
+  try {
+    exec("git", ["diff", "--quiet"]);
+    return;
+  } catch (e) {
+    // do nothing
+  }
   exec("git", ["add", "."]);
   if (message) {
     exec("git", ["commit", "-m", message]);

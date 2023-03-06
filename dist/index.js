@@ -16571,7 +16571,7 @@ async function sync(inputs) {
   }
 
   merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
-  commit(files);
+  commit(files, "merged template");
 
   push();
 

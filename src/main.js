@@ -16,7 +16,6 @@ const {
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
-const { exec } = require("./exec");
 
 async function main() {
   const inputs = await getInputs();
@@ -32,24 +31,34 @@ async function main() {
 }
 
 async function sync(inputs) {
+  // Checkout template repository
   checkoutRemote(inputs.templateRepo.owner, inputs.templateRepo.name, "template", inputs.templateBranch);
+
+  // Get changed files from the last synchronized commit to HEAD
   let files = getChangedFiles(inputs.templateSyncFile);
   core.info(`changed files: ${files.length}`);
-  files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`changed files after ignoring: ${files.length}`);
 
+  // Exclude files to be ignored
+  files = ignoreFiles(files, inputs.ignorePaths);
+  core.info(`changed files with ignored: ${files.length}`);
+
+  // Add .templatesync file
   files.push(inputs.templateSyncFile);
 
+  // Replace/Rename
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
   }
 
+  // Merge
   merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
   commit(files, "merged template");
 
+  // Push
   push();
 
+  // Create PR
   await createOrUpdatePr(inputs);
 }
 

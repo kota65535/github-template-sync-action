@@ -16539,7 +16539,6 @@ const {
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
-const { exec } = __nccwpck_require__(3264);
 
 async function main() {
   const inputs = await getInputs();
@@ -16555,24 +16554,34 @@ async function main() {
 }
 
 async function sync(inputs) {
+  // Checkout template repository
   checkoutRemote(inputs.templateRepo.owner, inputs.templateRepo.name, "template", inputs.templateBranch);
+
+  // Get changed files from the last synchronized commit to HEAD
   let files = getChangedFiles(inputs.templateSyncFile);
   core.info(`changed files: ${files.length}`);
-  files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`changed files after ignoring: ${files.length}`);
 
+  // Exclude files to be ignored
+  files = ignoreFiles(files, inputs.ignorePaths);
+  core.info(`changed files with ignored: ${files.length}`);
+
+  // Add .templatesync file
   files.push(inputs.templateSyncFile);
 
+  // Replace/Rename
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
   }
 
+  // Merge
   merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
   commit(files, "merged template");
 
+  // Push
   push();
 
+  // Create PR
   await createOrUpdatePr(inputs);
 }
 
@@ -16696,7 +16705,30 @@ function toPascal(str) {
   return tokens.map((s) => `${s[0].toUpperCase()}${s.slice(1)}`).join("");
 }
 
+function toKebab(str) {
+  for (const c of str) {
+    switch (c) {
+      case "-":
+        return str;
+      case "_":
+        return str.replaceAll("_", "-");
+    }
+  }
+
+  let ret = str[0].toLowerCase();
+  for (const c of str.slice(1)) {
+    if (c === c.toUpperCase()) {
+      ret += `-${c.toLowerCase()}`;
+    } else {
+      ret += c;
+    }
+  }
+  return ret;
+}
+
 function createConversions(fromName, toName) {
+  fromName = toKebab(fromName);
+  toName = toKebab(toName);
   return [
     {
       from: fromName,
@@ -16729,6 +16761,11 @@ function convert(conversions, str) {
 module.exports = {
   createConversions,
   convert,
+  toJoined,
+  toSnake,
+  toCamel,
+  toPascal,
+  toKebab,
 };
 
 

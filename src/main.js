@@ -27,7 +27,7 @@ async function main() {
     // Restore credentials
     setGitCredentials(creds);
   }
-  core.setOutput("pr-head", inputs.prHead);
+  core.setOutput("pr-branch", inputs.prBranch);
 }
 
 async function sync(inputs) {
@@ -37,12 +37,14 @@ async function sync(inputs) {
   files = ignoreFiles(files, inputs.ignorePaths);
   core.info(`changed files after ignoring: ${files.length}`);
 
+  files.push(inputs.templateSyncFile);
+
   if (inputs.remote) {
     rename(inputs.fromName, inputs.toName);
     commit(files, "renamed");
   }
 
-  merge(inputs.prHead, inputs.prBase, inputs.templateBranch);
+  merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
   commit(files);
 
   push();

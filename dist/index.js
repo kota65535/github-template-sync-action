@@ -16378,7 +16378,7 @@ const getInputs = async () => {
     owner: context.repo.owner,
     repo: context.repo.repo,
   });
-  const templateRepo = res.data.template_repository.repo;
+  const templateRepo = res.data.template_repository.full_name;
 
   if (!(fromName && toName)) {
     if (!fromName) {

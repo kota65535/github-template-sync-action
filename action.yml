@@ -4,6 +4,9 @@ branding:
   icon: "copy"
   color: "white"
 inputs:
+  rename:
+    description: "Rename or not"
+    default: "false"
   from-name:
     description: "Original project name from the template repository"
   to-name:
@@ -15,10 +18,12 @@ inputs:
   default-github-token:
     description: "Default gitHub token"
     default: ${{ github.token }}
-  pr-head:
+  template-branch:
+    description: "Template repository branch"
+  pr-head-branch:
     description: "PR head branch"
     default: "template-sync"
-  pr-base:
+  pr-base-branch:
     description: "PR base branch"
   pr-title:
     description: "PR title"

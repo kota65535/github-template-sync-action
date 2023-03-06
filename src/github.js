@@ -7,10 +7,12 @@ const initOctokit = (token) => {
   octokit = getOctokit(token);
 };
 
-const getRepo = async () => {
+const getRepo = async (owner, repo) => {
+  owner ||= context.repo.owner;
+  repo ||= context.repo.repo;
   const res = await octokit.rest.repos.get({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
+    owner,
+    repo,
   });
   return res.data;
 };

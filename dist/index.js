@@ -16273,16 +16273,16 @@ const { exec } = __nccwpck_require__(3264);
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutTemplate(repo) {
-  exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
+function checkoutRemote(owner, name, remote, branch) {
+  exec("git", ["remote", "add", "template", `https://github.com/${owner}/${name}`]);
   exec("git", ["fetch", "--all"]);
-  exec("git", ["checkout", "-b", "template/main", "template/main"]);
+  exec("git", ["checkout", "-b", `template/${branch}`, `template/${branch}`]);
 }
 
-function merge(prBranch) {
-  exec("git", ["checkout", "-b", prBranch, "main"]);
+function merge(prBranch, prBase, templateBranch) {
+  exec("git", ["checkout", "-b", prBranch, prBase]);
   try {
-    exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
+    exec("git", ["merge", `template/${templateBranch}`, "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
     // no-op
   }
@@ -16296,6 +16296,11 @@ function restore(path) {
 function listFiles() {
   const { stdout } = exec("git", ["ls-files"]);
   return stdout.split("\n");
+}
+
+function getCurrentHash() {
+  const { stdout } = exec("git", ["rev-parse", "HEAD"]);
+  return stdout;
 }
 
 function listDiffFiles(fromCommit) {
@@ -16328,15 +16333,21 @@ function setGitCredentials(token) {
   exec("git", ["config", extraHeaderKey, `AUTHORIZATION: basic ${base64Token}`]);
 }
 
-function commit(message) {
+function commit(files, message) {
   setUserAsBot();
+  for (const f of files) {
+    try {
+      exec("git", ["add", f]);
+    } catch (e) {
+      // do nothing
+    }
+  }
   try {
     exec("git", ["diff-index", "--quiet", "HEAD"]);
     return;
   } catch (e) {
     // do nothing
   }
-  exec("git", ["add", "."]);
   if (message) {
     exec("git", ["commit", "-m", message]);
   } else {
@@ -16349,11 +16360,12 @@ function push() {
 }
 
 module.exports = {
-  checkoutTemplate,
+  checkoutRemote,
   merge,
   restore,
   listFiles,
   listDiffFiles,
+  getCurrentHash,
   getGitCredentials,
   setGitCredentials,
   commit,
@@ -16375,10 +16387,12 @@ const initOctokit = (token) => {
   octokit = getOctokit(token);
 };
 
-const getRepo = async () => {
+const getRepo = async (owner, repo) => {
+  owner ||= context.repo.owner;
+  repo ||= context.repo.repo;
   const res = await octokit.rest.repos.get({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
+    owner,
+    repo,
   });
   return res.data;
 };
@@ -16432,6 +16446,7 @@ const core = __nccwpck_require__(2186);
 const { initOctokit, getRepo } = __nccwpck_require__(8396);
 
 const getInputs = async () => {
+  const rename = core.getInput("rename") === "true";
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
   const ignorePaths = core
@@ -16440,8 +16455,9 @@ const getInputs = async () => {
     .filter((f) => f);
   let githubToken = core.getInput("github-token");
   const defaultGithubToken = core.getInput("default-github-token");
-  const prHead = core.getInput("pr-head");
-  let prBase = core.getInput("pr-base");
+  let templateBranch = core.getInput("template-branch");
+  const prBranch = core.getInput("pr-branch");
+  let prBase = core.getInput("pr-base-branch");
   const prTitle = core.getInput("pr-title");
   const prLabels = core
     .getInput("pr-labels")
@@ -16461,8 +16477,6 @@ const getInputs = async () => {
   if (!repo.template_repository) {
     throw new Error("Could not get the template repository.");
   }
-  const templateRepo = repo.template_repository.full_name;
-
   if (!fromName) {
     fromName = repo.template_repository.name;
   }
@@ -16473,18 +16487,28 @@ const getInputs = async () => {
     prBase = repo.default_branch;
   }
 
+  const templateRepo = await getRepo(repo.template_repository.owner, repo.template_repository.name);
+  if (!templateBranch) {
+    templateBranch = templateRepo.default_branch;
+  }
+
   const ret = {
+    rename,
     fromName,
     toName,
     ignorePaths,
     githubToken,
-    prHead,
+    templateBranch,
+    prBranch,
     prBase,
     prTitle,
     prLabels,
     templateSyncFile,
     dryRun,
-    templateRepo,
+    templateRepo: {
+      owner: templateRepo.owner,
+      name: templateRepo.name,
+    },
   };
   core.info(JSON.stringify(ret));
   return ret;
@@ -16509,12 +16533,12 @@ const {
   getGitCredentials,
   setGitCredentials,
   listFiles,
-  checkoutTemplate,
+  listDiffFiles,
   merge,
   commit,
-  restore,
   push,
-  listDiffFiles,
+  getCurrentHash,
+  checkoutRemote,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
@@ -16526,51 +16550,53 @@ async function main() {
   try {
     await sync(inputs);
   } finally {
+    // Restore credentials
     setGitCredentials(creds);
   }
   core.setOutput("pr-head", inputs.prHead);
 }
 
 async function sync(inputs) {
-  const files = renameTemplate(inputs);
+  checkoutRemote(inputs.templateRepo.owner, inputs.templateRepo.name, "template", inputs.templateBranch);
+  let files = getChangedFiles(inputs.templateSyncFile);
   core.info(`changed files: ${files.length}`);
-  mergeTemplate(inputs, files);
-  commit();
+  files = ignoreFiles(files, inputs.ignorePaths);
+  core.info(`changed files after ignoring: ${files.length}`);
+
+  if (inputs.remote) {
+    rename(inputs.fromName, inputs.toName);
+    commit(files, "renamed");
+  }
+
+  merge(inputs.prHead, inputs.prBase, inputs.templateBranch);
+  commit(files);
+
   push();
+
   await createOrUpdatePr(inputs);
 }
 
-function renameTemplate(inputs) {
-  checkoutTemplate(inputs.templateRepo);
-  rename(inputs.fromName, inputs.toName);
-  return getTemplateChangedFiles(inputs.templateSyncFile);
-}
-
-function mergeTemplate(inputs, files) {
-  merge(inputs.prHead);
-  if (inputs.ignorePaths.length) {
-    const ignoredFiles = micromatch(files, inputs.ignorePaths);
-    core.info(`${ignoredFiles.length} files to ignore`);
-    for (const f of ignoredFiles) {
-      restore(f);
-    }
+function ignoreFiles(files, ignorePaths) {
+  if (ignorePaths.length) {
+    return micromatch.not(files, ignorePaths);
+  } else {
+    return files;
   }
 }
 
-function getTemplateChangedFiles(inputs) {
+function getChangedFiles(syncCommitFile) {
   let files;
-  if (fs.existsSync(inputs.templateSyncFile)) {
-    const lastSyncCommit = fs.readFileSync(inputs.templateSyncFile, "utf8");
+  if (fs.existsSync(syncCommitFile)) {
+    const lastSyncCommit = fs.readFileSync(syncCommitFile, "utf8");
     files = listDiffFiles(lastSyncCommit);
   } else {
     files = listFiles();
   }
-  const conversions = createConversions(inputs);
-  return files.map((f) => convert(conversions, f));
+  fs.writeFileSync(syncCommitFile, getCurrentHash(), "utf8");
+  return files;
 }
 
-function rename(fromName, toName) {
-  const files = listFiles();
+function rename(files, fromName, toName) {
   core.info(`${files.length} files to replace`);
 
   const conversions = createConversions(fromName, toName);
@@ -16600,7 +16626,7 @@ function rename(fromName, toName) {
     }
   }
 
-  commit("renamed");
+  return files.map((f) => convert(conversions, f));
 }
 
 function getDirsFromFiles(files) {
@@ -16628,14 +16654,14 @@ function getDirsFromFiles(files) {
 }
 
 async function createOrUpdatePr(inputs) {
-  const prs = await listPrs(inputs.prHead, inputs.prBase);
+  const prs = await listPrs(inputs.prBranch, inputs.prBase);
   if (prs.length) {
     const prNum = prs[0].number;
     core.info(`updating existing PR #${prNum}`);
-    await updatePr(prNum, inputs.prTitle, inputs.prHead, inputs.prBase);
+    await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase);
   } else {
     core.info("creating PR");
-    await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+    await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
   }
 }
 

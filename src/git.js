@@ -3,16 +3,16 @@ const { exec } = require("./exec");
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutTemplate(repo) {
-  exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
+function checkoutRemote(owner, name, remote, branch) {
+  exec("git", ["remote", "add", "template", `https://github.com/${owner}/${name}`]);
   exec("git", ["fetch", "--all"]);
-  exec("git", ["checkout", "-b", "template/main", "template/main"]);
+  exec("git", ["checkout", "-b", `template/${branch}`, `template/${branch}`]);
 }
 
-function merge(prBranch) {
-  exec("git", ["checkout", "-b", prBranch, "main"]);
+function merge(prBranch, prBase, templateBranch) {
+  exec("git", ["checkout", "-b", prBranch, prBase]);
   try {
-    exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
+    exec("git", ["merge", `template/${templateBranch}`, "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
     // no-op
   }
@@ -26,6 +26,11 @@ function restore(path) {
 function listFiles() {
   const { stdout } = exec("git", ["ls-files"]);
   return stdout.split("\n");
+}
+
+function getCurrentHash() {
+  const { stdout } = exec("git", ["rev-parse", "HEAD"]);
+  return stdout;
 }
 
 function listDiffFiles(fromCommit) {
@@ -58,15 +63,21 @@ function setGitCredentials(token) {
   exec("git", ["config", extraHeaderKey, `AUTHORIZATION: basic ${base64Token}`]);
 }
 
-function commit(message) {
+function commit(files, message) {
   setUserAsBot();
+  for (const f of files) {
+    try {
+      exec("git", ["add", f]);
+    } catch (e) {
+      // do nothing
+    }
+  }
   try {
     exec("git", ["diff-index", "--quiet", "HEAD"]);
     return;
   } catch (e) {
     // do nothing
   }
-  exec("git", ["add", "."]);
   if (message) {
     exec("git", ["commit", "-m", message]);
   } else {
@@ -79,11 +90,12 @@ function push() {
 }
 
 module.exports = {
-  checkoutTemplate,
+  checkoutRemote,
   merge,
   restore,
   listFiles,
   listDiffFiles,
+  getCurrentHash,
   getGitCredentials,
   setGitCredentials,
   commit,

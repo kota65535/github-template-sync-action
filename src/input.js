@@ -2,6 +2,7 @@ const core = require("@actions/core");
 const { initOctokit, getRepo } = require("./github");
 
 const getInputs = async () => {
+  const rename = core.getInput("rename") === "true";
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
   const ignorePaths = core
@@ -10,8 +11,9 @@ const getInputs = async () => {
     .filter((f) => f);
   let githubToken = core.getInput("github-token");
   const defaultGithubToken = core.getInput("default-github-token");
-  const prHead = core.getInput("pr-head");
-  let prBase = core.getInput("pr-base");
+  let templateBranch = core.getInput("template-branch");
+  const prBranch = core.getInput("pr-branch");
+  let prBase = core.getInput("pr-base-branch");
   const prTitle = core.getInput("pr-title");
   const prLabels = core
     .getInput("pr-labels")
@@ -31,8 +33,6 @@ const getInputs = async () => {
   if (!repo.template_repository) {
     throw new Error("Could not get the template repository.");
   }
-  const templateRepo = repo.template_repository.full_name;
-
   if (!fromName) {
     fromName = repo.template_repository.name;
   }
@@ -43,18 +43,28 @@ const getInputs = async () => {
     prBase = repo.default_branch;
   }
 
+  const templateRepo = await getRepo(repo.template_repository.owner, repo.template_repository.name);
+  if (!templateBranch) {
+    templateBranch = templateRepo.default_branch;
+  }
+
   const ret = {
+    rename,
     fromName,
     toName,
     ignorePaths,
     githubToken,
-    prHead,
+    templateBranch,
+    prBranch,
     prBase,
     prTitle,
     prLabels,
     templateSyncFile,
     dryRun,
-    templateRepo,
+    templateRepo: {
+      owner: templateRepo.owner,
+      name: templateRepo.name,
+    },
   };
   core.info(JSON.stringify(ret));
   return ret;

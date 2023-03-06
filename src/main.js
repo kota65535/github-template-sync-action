@@ -7,12 +7,12 @@ const {
   getGitCredentials,
   setGitCredentials,
   listFiles,
-  checkoutTemplate,
+  listDiffFiles,
   merge,
   commit,
-  restore,
   push,
-  listDiffFiles,
+  getCurrentHash,
+  checkoutRemote,
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
@@ -24,51 +24,53 @@ async function main() {
   try {
     await sync(inputs);
   } finally {
+    // Restore credentials
     setGitCredentials(creds);
   }
   core.setOutput("pr-head", inputs.prHead);
 }
 
 async function sync(inputs) {
-  const files = renameTemplate(inputs);
+  checkoutRemote(inputs.templateRepo.owner, inputs.templateRepo.name, "template", inputs.templateBranch);
+  let files = getChangedFiles(inputs.templateSyncFile);
   core.info(`changed files: ${files.length}`);
-  mergeTemplate(inputs, files);
-  commit();
+  files = ignoreFiles(files, inputs.ignorePaths);
+  core.info(`changed files after ignoring: ${files.length}`);
+
+  if (inputs.remote) {
+    rename(inputs.fromName, inputs.toName);
+    commit(files, "renamed");
+  }
+
+  merge(inputs.prHead, inputs.prBase, inputs.templateBranch);
+  commit(files);
+
   push();
+
   await createOrUpdatePr(inputs);
 }
 
-function renameTemplate(inputs) {
-  checkoutTemplate(inputs.templateRepo);
-  rename(inputs.fromName, inputs.toName);
-  return getTemplateChangedFiles(inputs.templateSyncFile);
-}
-
-function mergeTemplate(inputs, files) {
-  merge(inputs.prHead);
-  if (inputs.ignorePaths.length) {
-    const ignoredFiles = micromatch(files, inputs.ignorePaths);
-    core.info(`${ignoredFiles.length} files to ignore`);
-    for (const f of ignoredFiles) {
-      restore(f);
-    }
+function ignoreFiles(files, ignorePaths) {
+  if (ignorePaths.length) {
+    return micromatch.not(files, ignorePaths);
+  } else {
+    return files;
   }
 }
 
-function getTemplateChangedFiles(inputs) {
+function getChangedFiles(syncCommitFile) {
   let files;
-  if (fs.existsSync(inputs.templateSyncFile)) {
-    const lastSyncCommit = fs.readFileSync(inputs.templateSyncFile, "utf8");
+  if (fs.existsSync(syncCommitFile)) {
+    const lastSyncCommit = fs.readFileSync(syncCommitFile, "utf8");
     files = listDiffFiles(lastSyncCommit);
   } else {
     files = listFiles();
   }
-  const conversions = createConversions(inputs);
-  return files.map((f) => convert(conversions, f));
+  fs.writeFileSync(syncCommitFile, getCurrentHash(), "utf8");
+  return files;
 }
 
-function rename(fromName, toName) {
-  const files = listFiles();
+function rename(files, fromName, toName) {
   core.info(`${files.length} files to replace`);
 
   const conversions = createConversions(fromName, toName);
@@ -98,7 +100,7 @@ function rename(fromName, toName) {
     }
   }
 
-  commit("renamed");
+  return files.map((f) => convert(conversions, f));
 }
 
 function getDirsFromFiles(files) {
@@ -126,14 +128,14 @@ function getDirsFromFiles(files) {
 }
 
 async function createOrUpdatePr(inputs) {
-  const prs = await listPrs(inputs.prHead, inputs.prBase);
+  const prs = await listPrs(inputs.prBranch, inputs.prBase);
   if (prs.length) {
     const prNum = prs[0].number;
     core.info(`updating existing PR #${prNum}`);
-    await updatePr(prNum, inputs.prTitle, inputs.prHead, inputs.prBase);
+    await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase);
   } else {
     core.info("creating PR");
-    await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+    await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
   }
 }
 

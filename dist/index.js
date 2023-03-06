@@ -16466,26 +16466,28 @@ function mergeTemplate(inputs) {
 
 
 function rename(inputs) {
-  const trackedFiles = listFiles();
-  const targetFiles = micromatch.not(trackedFiles, inputs.ignorePaths);
-  console.info(`${targetFiles.length} files`);
+  let files = listFiles();
+  if (inputs.ignorePaths) {
+    files = micromatch.not(files, inputs.ignorePaths);
+  }
+  console.info(`${files.length} files`);
 
   const conversions = getConversions(inputs);
 
   // Replace file contents
-  for (const t of targetFiles) {
+  for (const t of files) {
     let s = fs.readFileSync(t, "utf-8");
     s = convert(conversions, s);
     fs.writeFileSync(t, s, "utf-8");
   }
 
   // Get directories where the files are located
-  const targetFilesAndDirs = getDirsFromFiles(targetFiles);
-  console.info(`${targetFilesAndDirs.length} files and directories`);
+  const filesAndDirs = getDirsFromFiles(files);
+  console.info(`${filesAndDirs.length} files and directories`);
 
   // Rename files and directories
   const cwd = process.cwd();
-  for (const t of targetFilesAndDirs) {
+  for (const t of filesAndDirs) {
     const fromBase = path.basename(t);
     const fromDir = path.dirname(t);
     const toBase = convert(conversions, fromBase);

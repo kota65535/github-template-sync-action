@@ -15,9 +15,11 @@ inputs:
   default-github-token:
     description: "Default gitHub token"
     default: ${{ github.token }}
-  pr-branch:
-    description: "PR branch"
+  pr-head:
+    description: "PR head branch"
     default: "template-sync"
+  pr-base:
+    description: "PR base branch"
   pr-title:
     description: "PR title"
     default: "Template sync"

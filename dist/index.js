@@ -16377,11 +16377,13 @@ const getRepo = async () => {
   return res.data;
 };
 
-const createPr = async (title) => {
+const createPr = async (title, head, base) => {
   return await octokit.rest.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    title: title,
+    title,
+    head,
+    base
   });
 };
 
@@ -16409,7 +16411,8 @@ const getInputs = async () => {
     .filter((f) => f);
   let githubToken = core.getInput("github-token");
   const defaultGithubToken = core.getInput("default-github-token");
-  const prBranch = core.getInput("pr-branch");
+  const prHead = core.getInput("pr-head");
+  let prBase = core.getInput("pr-base");
   const prTitle = core.getInput("pr-title");
   const prLabels = core
     .getInput("pr-labels")
@@ -16430,15 +16433,16 @@ const getInputs = async () => {
   }
   const templateRepo = repo.template_repository.full_name;
 
-  if (!(fromName && toName)) {
-    if (!fromName) {
-      fromName = repo.template_repository.name;
-      console.info(`Using '${fromName}' as from-name`);
-    }
-    if (!toName) {
-      toName = repo.name;
-      console.info(`Using '${toName}' as to-name`);
-    }
+  if (!fromName) {
+    fromName = repo.template_repository.name;
+    console.info(`Using '${fromName}' as from-name`);
+  }
+  if (!toName) {
+    toName = repo.name;
+    console.info(`Using '${toName}' as to-name`);
+  }
+  if (!prBase) {
+    prBase = repo.default_branch;
   }
 
   const ret = {
@@ -16446,7 +16450,8 @@ const getInputs = async () => {
     toName,
     ignorePaths,
     githubToken,
-    prBranch,
+    prHead,
+    prBase,
     prTitle,
     prLabels,
     dryRun,
@@ -16489,7 +16494,7 @@ async function main() {
   const creds = getGitCredentials();
   setGitCredentials(inputs.githubToken);
   try {
-    await sync(inputs)
+    await sync(inputs);
   } finally {
     setGitCredentials(creds);
   }
@@ -16501,7 +16506,7 @@ async function sync(inputs) {
   mergeTemplate(inputs);
   commit();
   push();
-  await createPr(inputs.prTitle);
+  await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
 }
 
 function mergeTemplate(inputs) {

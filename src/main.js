@@ -21,7 +21,7 @@ async function main() {
   const creds = getGitCredentials();
   setGitCredentials(inputs.githubToken);
   try {
-    await sync(inputs)
+    await sync(inputs);
   } finally {
     setGitCredentials(creds);
   }
@@ -33,7 +33,7 @@ async function sync(inputs) {
   mergeTemplate(inputs);
   commit();
   push();
-  await createPr(inputs.prTitle);
+  await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
 }
 
 function mergeTemplate(inputs) {

@@ -15,11 +15,13 @@ const getRepo = async () => {
   return res.data;
 };
 
-const createPr = async (title) => {
+const createPr = async (title, head, base) => {
   return await octokit.rest.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    title: title,
+    title,
+    head,
+    base
   });
 };
 

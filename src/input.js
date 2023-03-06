@@ -41,7 +41,7 @@ const getInputs = async () => {
       console.info(`Using '${toName}' as to-name`);
     }
   }
-  const prBranchName = `${prBranchPrefix}-${context.sha}`
+  const prBranchName = `${prBranchPrefix}${context.sha.slice(0, 7)}`
 
   const ret = {
     templateRepo,

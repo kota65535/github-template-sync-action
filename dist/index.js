@@ -16542,6 +16542,7 @@ const {
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
+const { exec } = __nccwpck_require__(3264);
 
 async function main() {
   const inputs = await getInputs();
@@ -16571,6 +16572,7 @@ async function sync(inputs) {
   }
 
   merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
+  exec("git", ["status"]);
   commit(files, "merged template");
 
   push();

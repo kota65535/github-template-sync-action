@@ -46,7 +46,6 @@ async function sync(inputs) {
   }
 
   merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
-  exec("git", ["status"]);
   commit(files, "merged template");
 
   push();

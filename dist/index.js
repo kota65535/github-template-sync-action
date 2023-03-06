@@ -16252,10 +16252,9 @@ const execa = __nccwpck_require__(5447);
 const core = __nccwpck_require__(2186);
 
 const exec = (file, options) => {
-  core.info(`running command: ${file} ${(options || []).join(" ")}`);
+  core.debug(`running command: ${file} ${(options || []).join(" ")}`);
   const res = execa.sync(file, options);
   core.debug(res.stdout);
-  core.debug(res.stderr);
   return res;
 };
 
@@ -16350,11 +16349,7 @@ function commit(files, message) {
   } catch (e) {
     // do nothing
   }
-  if (message) {
-    exec("git", ["commit", "-m", message]);
-  } else {
-    exec("git", ["commit", "--no-edit"]);
-  }
+  exec("git", ["commit", "-m", message]);
 }
 
 function push() {
@@ -16574,7 +16569,6 @@ async function sync(inputs) {
   }
 
   merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
-  exec("git", ["status"]);
   commit(files, "merged template");
 
   push();

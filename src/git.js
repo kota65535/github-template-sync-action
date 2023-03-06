@@ -79,11 +79,7 @@ function commit(files, message) {
   } catch (e) {
     // do nothing
   }
-  if (message) {
-    exec("git", ["commit", "-m", message]);
-  } else {
-    exec("git", ["commit", "--no-edit"]);
-  }
+  exec("git", ["commit", "-m", message]);
 }
 
 function push() {

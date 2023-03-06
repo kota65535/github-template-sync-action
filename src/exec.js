@@ -3,7 +3,9 @@ const core = require("@actions/core");
 
 const exec = (file, options) => {
   core.info(`running command: ${file} ${(options || []).join(" ")}`);
-  return execa.sync(file, options);
+  const res = execa.sync(file, options);
+  core.info(res.stdout);
+  return res;
 };
 
 module.exports = {

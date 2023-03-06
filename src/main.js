@@ -3,7 +3,7 @@ const fs = require("fs");
 const core = require("@actions/core");
 const micromatch = require("micromatch");
 const { toJoined, toSnake, toCamel, toPascal } = require("./util");
-const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplateMain, merge, commit, restore, push } = require("./git");
+const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplate, merge, commit, restore, push } = require("./git");
 const { getInputs } = require("./input");
 
 async function main() {
@@ -21,16 +21,18 @@ async function main() {
 }
 
 function renameTemplate(inputs) {
-  checkoutTemplateMain(inputs.templateRepo)
+  checkoutTemplate(inputs.templateRepo)
   rename(inputs);
 }
 
 function mergeTemplate(inputs) {
   merge(inputs.prBranchName)
   const trackedFiles = listFiles();
-  const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
-  for (const f of ignoredFiles) {
-    restore(f)
+  if (inputs.ignorePaths.length) {
+    const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
+    for (const f of ignoredFiles) {
+      restore(f)
+    }
   }
 }
 

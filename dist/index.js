@@ -16254,7 +16254,7 @@ const core = __nccwpck_require__(2186);
 const exec = (file, options) => {
   core.info(`running command: ${file} ${(options || []).join(" ")}`);
   const res = execa.sync(file, options);
-  core.info(res.stdout);
+  core.debug(res.stdout);
   return res;
 };
 
@@ -16273,7 +16273,7 @@ const { exec } = __nccwpck_require__(3264);
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutTemplateMain(repo) {
+function checkoutTemplate(repo) {
   exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
   exec("git", ["fetch", "--all"]);
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
@@ -16349,7 +16349,7 @@ module.exports = {
   setGitCredentials,
   commit,
   push,
-  checkoutTemplateMain,
+  checkoutTemplate,
   merge,
   restore
 };
@@ -16434,7 +16434,7 @@ const fs = __nccwpck_require__(7147);
 const core = __nccwpck_require__(2186);
 const micromatch = __nccwpck_require__(6228);
 const { toJoined, toSnake, toCamel, toPascal } = __nccwpck_require__(6254);
-const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplateMain, merge, commit, restore, push } = __nccwpck_require__(109);
+const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplate, merge, commit, restore, push } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 
 async function main() {
@@ -16452,16 +16452,18 @@ async function main() {
 }
 
 function renameTemplate(inputs) {
-  checkoutTemplateMain(inputs.templateRepo)
+  checkoutTemplate(inputs.templateRepo)
   rename(inputs);
 }
 
 function mergeTemplate(inputs) {
   merge(inputs.prBranchName)
   const trackedFiles = listFiles();
-  const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
-  for (const f of ignoredFiles) {
-    restore(f)
+  if (inputs.ignorePaths.length) {
+    const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
+    for (const f of ignoredFiles) {
+      restore(f)
+    }
   }
 }
 

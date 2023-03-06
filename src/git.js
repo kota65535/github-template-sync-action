@@ -3,7 +3,7 @@ const { exec } = require("./exec");
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutTemplateMain(repo) {
+function checkoutTemplate(repo) {
   exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
   exec("git", ["fetch", "--all"]);
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
@@ -79,7 +79,7 @@ module.exports = {
   setGitCredentials,
   commit,
   push,
-  checkoutTemplateMain,
+  checkoutTemplate,
   merge,
   restore
 };

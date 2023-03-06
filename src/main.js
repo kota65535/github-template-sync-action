@@ -16,7 +16,7 @@ const {
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
-const {exec} = require("./exec");
+const { exec } = require("./exec");
 
 async function main() {
   const inputs = await getInputs();

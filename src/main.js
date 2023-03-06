@@ -17,7 +17,7 @@ async function main() {
 }
 
 function renameTemplate(inputs) {
-  checkoutTemplateMain()
+  checkoutTemplateMain(inputs.templateRepo)
   rename(inputs);
   commit("renamed")
 }

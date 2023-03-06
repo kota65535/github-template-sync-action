@@ -3,13 +3,13 @@ const { exec } = require("./exec");
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutTemplateMain(branch, repo) {
+function checkoutTemplateMain(repo) {
   exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
   exec("git", ["fetch", "template"]);
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
 }
 
-function merge(branch, repo) {
+function merge() {
   exec("git", ["checkout", "-b", "template-sync", "main"]);
   exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
 }

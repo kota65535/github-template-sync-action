@@ -16271,13 +16271,13 @@ const { exec } = __nccwpck_require__(3264);
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutTemplateMain(branch, repo) {
+function checkoutTemplateMain(repo) {
   exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
   exec("git", ["fetch", "template"]);
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
 }
 
-function merge(branch, repo) {
+function merge() {
   exec("git", ["checkout", "-b", "template-sync", "main"]);
   exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
 }
@@ -16372,13 +16372,15 @@ const getInputs = async () => {
   if (!githubToken) {
     throw new Error("No GitHub token provided");
   }
-  
+
+  const octokit = getOctokit(githubToken);
+  const res = await octokit.rest.repos.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+  });
+  const templateRepo = res.data.template_repository.repo;
+
   if (!(fromName && toName)) {
-    const octokit = getOctokit(githubToken);
-    const res = await octokit.rest.repos.get({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-    });
     if (!fromName) {
       fromName = res.data.template_repository.name;
       console.info(`Using '${fromName}' as from-name`);
@@ -16390,6 +16392,7 @@ const getInputs = async () => {
   }
 
   const ret = {
+    templateRepo,
     fromName,
     toName,
     prBranchPrefix,
@@ -16431,7 +16434,7 @@ async function main() {
 }
 
 function renameTemplate(inputs) {
-  checkoutTemplateMain()
+  checkoutTemplateMain(inputs.templateRepo)
   rename(inputs);
   commit("renamed")
 }

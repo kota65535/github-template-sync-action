@@ -20,13 +20,15 @@ const getInputs = async () => {
   if (!githubToken) {
     throw new Error("No GitHub token provided");
   }
-  
+
+  const octokit = getOctokit(githubToken);
+  const res = await octokit.rest.repos.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+  });
+  const templateRepo = res.data.template_repository.repo;
+
   if (!(fromName && toName)) {
-    const octokit = getOctokit(githubToken);
-    const res = await octokit.rest.repos.get({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-    });
     if (!fromName) {
       fromName = res.data.template_repository.name;
       console.info(`Using '${fromName}' as from-name`);
@@ -38,6 +40,7 @@ const getInputs = async () => {
   }
 
   const ret = {
+    templateRepo,
     fromName,
     toName,
     prBranchPrefix,

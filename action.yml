@@ -20,7 +20,7 @@ inputs:
     default: ${{ github.token }}
   template-branch:
     description: "Template repository branch"
-  pr-head-branch:
+  pr-branch:
     description: "PR head branch"
     default: "template-sync"
   pr-base-branch:

@@ -16280,7 +16280,7 @@ function checkoutTemplateMain(repo) {
 function merge() {
   exec("git", ["checkout", "-b", "template-sync", "main"]);
   try {
-    exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
+    exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
     // no-op
   }

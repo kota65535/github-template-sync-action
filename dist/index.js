@@ -16530,7 +16530,7 @@ async function sync(inputs) {
   mergeTemplate(inputs);
   commit();
   push();
-  await createOrUpdatePr(inputs.prTitle, inputs.prHead, inputs.prBase);
+  await createOrUpdatePr(inputs);
 }
 
 async function createOrUpdatePr(inputs) {

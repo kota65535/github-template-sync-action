@@ -66,7 +66,7 @@ const getInputs = async () => {
       name: templateRepo.name,
     },
   };
-  core.info(ret);
+  core.info(JSON.stringify(ret, null, 2));
   return ret;
 };
 

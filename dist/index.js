@@ -16383,14 +16383,37 @@ const createPr = async (title, head, base) => {
     repo: context.repo.repo,
     title,
     head,
-    base
+    base,
   });
+};
+
+const updatePr = async (prId, title, head, base) => {
+  return await octokit.rest.pulls.update({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: prId,
+    title,
+    head,
+    base,
+  });
+};
+
+const listPrs = async (head, base) => {
+  const res = await octokit.rest.pulls.list({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    head,
+    base,
+  });
+  return res.data;
 };
 
 module.exports = {
   initOctokit,
   getRepo,
   createPr,
+  updatePr,
+  listPrs,
 };
 
 
@@ -16487,7 +16510,7 @@ const {
   push,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
-const { createPr } = __nccwpck_require__(8396);
+const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
 
 async function main() {
   const inputs = await getInputs();
@@ -16498,6 +16521,7 @@ async function main() {
   } finally {
     setGitCredentials(creds);
   }
+  core.setOutput("pr-head", inputs.prHead);
 }
 
 async function sync(inputs) {
@@ -16506,7 +16530,17 @@ async function sync(inputs) {
   mergeTemplate(inputs);
   commit();
   push();
-  await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+  await createOrUpdatePr(inputs.prTitle, inputs.prHead, inputs.prBase);
+}
+
+async function createOrUpdatePr(inputs) {
+  const prs = await listPrs(inputs.prHead, inputs.prBase);
+  if (prs.length) {
+    const prId = prs[0].id;
+    await updatePr(prId, inputs.prTitle, inputs.prHead, inputs.prBase);
+  } else {
+    await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+  }
 }
 
 function mergeTemplate(inputs) {

@@ -14,7 +14,7 @@ const {
   push,
 } = require("./git");
 const { getInputs } = require("./input");
-const { createPr } = require("./github");
+const { createPr, listPrs, updatePr } = require("./github");
 
 async function main() {
   const inputs = await getInputs();
@@ -25,6 +25,7 @@ async function main() {
   } finally {
     setGitCredentials(creds);
   }
+  core.setOutput("pr-head", inputs.prHead);
 }
 
 async function sync(inputs) {
@@ -33,7 +34,17 @@ async function sync(inputs) {
   mergeTemplate(inputs);
   commit();
   push();
-  await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+  await createOrUpdatePr(inputs.prTitle, inputs.prHead, inputs.prBase);
+}
+
+async function createOrUpdatePr(inputs) {
+  const prs = await listPrs(inputs.prHead, inputs.prBase);
+  if (prs.length) {
+    const prId = prs[0].id;
+    await updatePr(prId, inputs.prTitle, inputs.prHead, inputs.prBase);
+  } else {
+    await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+  }
 }
 
 function mergeTemplate(inputs) {

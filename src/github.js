@@ -21,12 +21,35 @@ const createPr = async (title, head, base) => {
     repo: context.repo.repo,
     title,
     head,
-    base
+    base,
   });
+};
+
+const updatePr = async (prId, title, head, base) => {
+  return await octokit.rest.pulls.update({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: prId,
+    title,
+    head,
+    base,
+  });
+};
+
+const listPrs = async (head, base) => {
+  const res = await octokit.rest.pulls.list({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    head,
+    base,
+  });
+  return res.data;
 };
 
 module.exports = {
   initOctokit,
   getRepo,
   createPr,
+  updatePr,
+  listPrs,
 };

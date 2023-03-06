@@ -16387,11 +16387,11 @@ const createPr = async (title, head, base) => {
   });
 };
 
-const updatePr = async (prId, title, head, base) => {
+const updatePr = async (prNum, title, head, base) => {
   return await octokit.rest.pulls.update({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    pull_number: prId,
+    pull_number: prNum,
     title,
     head,
     base,
@@ -16536,8 +16536,8 @@ async function sync(inputs) {
 async function createOrUpdatePr(inputs) {
   const prs = await listPrs(inputs.prHead, inputs.prBase);
   if (prs.length) {
-    const prId = prs[0].id;
-    await updatePr(prId, inputs.prTitle, inputs.prHead, inputs.prBase);
+    const prNum = prs[0].number;
+    await updatePr(prNum, inputs.prTitle, inputs.prHead, inputs.prBase);
   } else {
     await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
   }

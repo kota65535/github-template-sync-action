@@ -25,11 +25,11 @@ const createPr = async (title, head, base) => {
   });
 };
 
-const updatePr = async (prId, title, head, base) => {
+const updatePr = async (prNum, title, head, base) => {
   return await octokit.rest.pulls.update({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    pull_number: prId,
+    pull_number: prNum,
     title,
     head,
     base,

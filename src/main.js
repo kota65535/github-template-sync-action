@@ -40,8 +40,8 @@ async function sync(inputs) {
 async function createOrUpdatePr(inputs) {
   const prs = await listPrs(inputs.prHead, inputs.prBase);
   if (prs.length) {
-    const prId = prs[0].id;
-    await updatePr(prId, inputs.prTitle, inputs.prHead, inputs.prBase);
+    const prNum = prs[0].number;
+    await updatePr(prNum, inputs.prTitle, inputs.prHead, inputs.prBase);
   } else {
     await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
   }

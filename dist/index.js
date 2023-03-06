@@ -16279,7 +16279,11 @@ function checkoutTemplateMain(repo) {
 
 function merge() {
   exec("git", ["checkout", "-b", "template-sync", "main"]);
-  exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
+  try {
+    exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
+  } catch (e) {
+    // no-op
+  }
 }
 
 function restore(path) {
@@ -16326,7 +16330,11 @@ function commit(message) {
     // do nothing
   }
   exec("git", ["add", "."]);
-  exec("git", ["commit", "-m", message]);
+  if (message) {
+    exec("git", ["commit", "-m", message]);
+  } else {
+    exec("git", ["commit", "--no-edit"]);
+  }
 }
 
 function push() {
@@ -16422,7 +16430,7 @@ const micromatch = __nccwpck_require__(6228);
 const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
 const { toJoined, toSnake, toCamel, toPascal } = __nccwpck_require__(6254);
-const { getGitCredentials, setGitCredentials, listFiles, commitAndPush, checkoutTemplateMain, merge, commit, restore} = __nccwpck_require__(109);
+const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplateMain, merge, commit, restore, push } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 
 async function main() {
@@ -16432,6 +16440,8 @@ async function main() {
   try {
     renameTemplate(inputs)
     mergeTemplate(inputs)
+    commit()
+    push()
   } finally {
     setGitCredentials(creds);
   }

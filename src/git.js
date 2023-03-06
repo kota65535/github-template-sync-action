@@ -11,7 +11,11 @@ function checkoutTemplateMain(repo) {
 
 function merge() {
   exec("git", ["checkout", "-b", "template-sync", "main"]);
-  exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
+  try {
+    exec("git", ["merge", "template/main", "--allow-unrelated-histories", "--no-commit"]);
+  } catch (e) {
+    // no-op
+  }
 }
 
 function restore(path) {
@@ -58,7 +62,11 @@ function commit(message) {
     // do nothing
   }
   exec("git", ["add", "."]);
-  exec("git", ["commit", "-m", message]);
+  if (message) {
+    exec("git", ["commit", "-m", message]);
+  } else {
+    exec("git", ["commit", "--no-edit"]);
+  }
 }
 
 function push() {

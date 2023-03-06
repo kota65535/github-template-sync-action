@@ -2,7 +2,7 @@ const micromatch = require("micromatch");
 const path = require("path");
 const fs = require("fs");
 const { toJoined, toSnake, toCamel, toPascal } = require("./util");
-const { getGitCredentials, setGitCredentials, listFiles, commitAndPush, checkoutTemplateMain, merge, commit, restore} = require("./git");
+const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplateMain, merge, commit, restore, push } = require("./git");
 const { getInputs } = require("./input");
 
 async function main() {
@@ -12,6 +12,8 @@ async function main() {
   try {
     renameTemplate(inputs)
     mergeTemplate(inputs)
+    commit()
+    push()
   } finally {
     setGitCredentials(creds);
   }

@@ -16428,6 +16428,7 @@ const { getInputs } = __nccwpck_require__(6);
 async function main() {
   const inputs = await getInputs();
   const creds = getGitCredentials();
+  setGitCredentials(inputs.githubToken);
   try {
     renameTemplate(inputs)
     mergeTemplate(inputs)

@@ -8,6 +8,7 @@ const { getInputs } = require("./input");
 async function main() {
   const inputs = await getInputs();
   const creds = getGitCredentials();
+  setGitCredentials(inputs.githubToken);
   try {
     renameTemplate(inputs)
     mergeTemplate(inputs)

@@ -16442,15 +16442,15 @@ const getInputs = async () => {
   }
 
   const ret = {
-    templateRepo,
     fromName,
     toName,
+    ignorePaths,
+    githubToken,
     prBranch,
     prTitle,
     prLabels,
-    githubToken,
-    ignorePaths,
     dryRun,
+    templateRepo,
   };
   console.info(ret);
   return ret;
@@ -16489,19 +16489,19 @@ async function main() {
   const creds = getGitCredentials();
   setGitCredentials(inputs.githubToken);
   try {
-    renameTemplate(inputs);
-    mergeTemplate(inputs);
-    commit();
-    push();
-    await createPr(inputs.prTitle);
+    await sync(inputs)
   } finally {
     setGitCredentials(creds);
   }
 }
 
-function renameTemplate(inputs) {
+async function sync(inputs) {
   checkoutTemplate(inputs.templateRepo);
-  rename(inputs);
+  renameTemplate(inputs);
+  mergeTemplate(inputs);
+  commit();
+  push();
+  await createPr(inputs.prTitle);
 }
 
 function mergeTemplate(inputs) {
@@ -16515,7 +16515,7 @@ function mergeTemplate(inputs) {
   }
 }
 
-function rename(inputs) {
+function renameTemplate(inputs) {
   let files = listFiles();
   if (inputs.ignorePaths.length) {
     files = micromatch.not(files, inputs.ignorePaths);
@@ -16533,7 +16533,7 @@ function rename(inputs) {
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  console.info(`${filesAndDirs.length} files and directories`);
+  core.info(`${filesAndDirs.length} files and directories`);
 
   // Rename files and directories
   const cwd = process.cwd();
@@ -16549,7 +16549,7 @@ function rename(inputs) {
     }
   }
 
-  commit(inputs.commitMessage);
+  commit("renamed");
 }
 
 function getConversions(inputs) {
@@ -16608,7 +16608,7 @@ function getDirsFromFiles(files) {
 
 module.exports = {
   main,
-  rename,
+  rename: renameTemplate,
 };
 
 

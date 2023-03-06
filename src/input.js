@@ -43,15 +43,15 @@ const getInputs = async () => {
   }
 
   const ret = {
-    templateRepo,
     fromName,
     toName,
+    ignorePaths,
+    githubToken,
     prBranch,
     prTitle,
     prLabels,
-    githubToken,
-    ignorePaths,
     dryRun,
+    templateRepo,
   };
   console.info(ret);
   return ret;

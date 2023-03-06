@@ -43,7 +43,7 @@ const getInputs = async () => {
     prBase = repo.default_branch;
   }
 
-  const templateRepo = await getRepo(repo.template_repository.owner, repo.template_repository.name);
+  const templateRepo = await getRepo(repo.template_repository.owner.login, repo.template_repository.name);
   if (!templateBranch) {
     templateBranch = templateRepo.default_branch;
   }

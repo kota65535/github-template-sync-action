@@ -5,7 +5,7 @@ const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
 function checkoutTemplateMain(repo) {
   exec("git", ["remote", "add", "template", `https://github.com/${repo}`]);
-  exec("git", ["fetch", "template"]);
+  exec("git", ["fetch", "--all"]);
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
 }
 

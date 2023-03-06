@@ -37,7 +37,6 @@ function mergeTemplate(inputs) {
 
 function rename(inputs) {
   let files = listFiles();
-  core.info(`${files.length} files`);
   if (inputs.ignorePaths.length) {
     files = micromatch.not(files, inputs.ignorePaths);
   }

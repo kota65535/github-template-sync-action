@@ -16325,9 +16325,8 @@ function setGitCredentials(token) {
 
 function commit(message) {
   setUserAsBot();
-  exec("git", ["status"]);
   try {
-    exec("git", ["diff", "--quiet"]);
+    exec("git", ["diff-index", "--quiet", "HEAD"]);
     return;
   } catch (e) {
     // do nothing

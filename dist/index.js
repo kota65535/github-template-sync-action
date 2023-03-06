@@ -16280,7 +16280,6 @@ function checkoutTemplateMain(repo) {
 }
 
 function merge(prBranch) {
-  exec("git", ["checkout", "-b", "main", "origin/main"]);
   exec("git", ["checkout", "-b", prBranch, "main"]);
   try {
     exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);

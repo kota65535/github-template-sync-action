@@ -37,10 +37,11 @@ async function sync(inputs) {
 }
 
 function mergeTemplate(inputs) {
-  merge(inputs.prBranch);
+  merge(inputs.prHead);
   const trackedFiles = listFiles();
   if (inputs.ignorePaths.length) {
     const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
+    core.info(`${ignoredFiles.length} files to ignore`);
     for (const f of ignoredFiles) {
       restore(f);
     }

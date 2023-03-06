@@ -81,5 +81,5 @@ module.exports = {
   push,
   checkoutTemplate,
   merge,
-  restore
+  restore,
 };

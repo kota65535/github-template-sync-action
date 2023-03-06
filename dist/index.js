@@ -16351,7 +16351,44 @@ module.exports = {
   push,
   checkoutTemplate,
   merge,
-  restore
+  restore,
+};
+
+
+/***/ }),
+
+/***/ 8396:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const { getOctokit } = __nccwpck_require__(5438);
+const { context } = __nccwpck_require__(5438);
+
+let octokit;
+
+const initOctokit = (token) => {
+  octokit = getOctokit(token);
+};
+
+const getRepo = async () => {
+  const res = await octokit.rest.repos.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+  });
+  return res.data;
+};
+
+const createPr = async (title) => {
+  return await octokit.rest.pulls.create({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    title: title,
+  });
+};
+
+module.exports = {
+  initOctokit,
+  getRepo,
+  createPr,
 };
 
 
@@ -16361,57 +16398,57 @@ module.exports = {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186);
-const { getOctokit } = __nccwpck_require__(5438);
-const { context } = __nccwpck_require__(5438);
+const { initOctokit, getRepo } = __nccwpck_require__(8396);
 
 const getInputs = async () => {
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
   const ignorePaths = core
-      .getInput("ignore-paths")
-      .split("\n")
-      .filter((f) => f);
-  const commitMessage = core.getInput("commit-message");
-  const dryRun = core.getInput("dry-run") === "true";
-  const prBranchPrefix = core.getInput("pr-branch-prefix")
-
+    .getInput("ignore-paths")
+    .split("\n")
+    .filter((f) => f);
   let githubToken = core.getInput("github-token");
   const defaultGithubToken = core.getInput("default-github-token");
+  const prBranch = core.getInput("pr-branch");
+  const prTitle = core.getInput("pr-title");
+  const prLabels = core
+    .getInput("pr-labels")
+    .split("\n")
+    .filter((f) => f);
+  const dryRun = core.getInput("dry-run") === "true";
 
   githubToken = githubToken || process.env.GITHUB_TOKEN || defaultGithubToken;
   if (!githubToken) {
     throw new Error("No GitHub token provided");
   }
 
-  const octokit = getOctokit(githubToken);
-  const res = await octokit.rest.repos.get({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-  });
-  if (!res.data.template_repository) {
-    throw new Error("Could not get template repository.")
+  initOctokit(githubToken);
+
+  const repo = await getRepo();
+  if (!repo.template_repository) {
+    throw new Error("Could not get template repository.");
   }
-  const templateRepo = res.data.template_repository.full_name;
+  const templateRepo = repo.template_repository.full_name;
 
   if (!(fromName && toName)) {
     if (!fromName) {
-      fromName = res.data.template_repository.name;
+      fromName = repo.template_repository.name;
       console.info(`Using '${fromName}' as from-name`);
     }
     if (!toName) {
-      toName = res.data.name;
+      toName = repo.name;
       console.info(`Using '${toName}' as to-name`);
     }
   }
-  const prBranchName = `${prBranchPrefix}${context.sha.slice(0, 7)}`
 
   const ret = {
     templateRepo,
     fromName,
     toName,
-    prBranchName,
+    prBranch,
+    prTitle,
+    prLabels,
     githubToken,
-    commitMessage,
     ignorePaths,
     dryRun,
   };
@@ -16434,39 +16471,49 @@ const fs = __nccwpck_require__(7147);
 const core = __nccwpck_require__(2186);
 const micromatch = __nccwpck_require__(6228);
 const { toJoined, toSnake, toCamel, toPascal } = __nccwpck_require__(6254);
-const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplate, merge, commit, restore, push } = __nccwpck_require__(109);
+const {
+  getGitCredentials,
+  setGitCredentials,
+  listFiles,
+  checkoutTemplate,
+  merge,
+  commit,
+  restore,
+  push,
+} = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
+const { createPr } = __nccwpck_require__(8396);
 
 async function main() {
   const inputs = await getInputs();
   const creds = getGitCredentials();
   setGitCredentials(inputs.githubToken);
   try {
-    renameTemplate(inputs)
-    mergeTemplate(inputs)
-    commit()
-    push()
+    renameTemplate(inputs);
+    mergeTemplate(inputs);
+    commit();
+    push();
+    await createPr(inputs.prTitle);
   } finally {
     setGitCredentials(creds);
   }
 }
 
 function renameTemplate(inputs) {
-  checkoutTemplate(inputs.templateRepo)
+  checkoutTemplate(inputs.templateRepo);
   rename(inputs);
 }
 
 function mergeTemplate(inputs) {
-  merge(inputs.prBranchName)
+  merge(inputs.prBranch);
   const trackedFiles = listFiles();
   if (inputs.ignorePaths.length) {
     const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
     for (const f of ignoredFiles) {
-      restore(f)
+      restore(f);
     }
   }
 }
-
 
 function rename(inputs) {
   let files = listFiles();

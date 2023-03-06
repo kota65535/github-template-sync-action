@@ -3,39 +3,49 @@ const fs = require("fs");
 const core = require("@actions/core");
 const micromatch = require("micromatch");
 const { toJoined, toSnake, toCamel, toPascal } = require("./util");
-const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplate, merge, commit, restore, push } = require("./git");
+const {
+  getGitCredentials,
+  setGitCredentials,
+  listFiles,
+  checkoutTemplate,
+  merge,
+  commit,
+  restore,
+  push,
+} = require("./git");
 const { getInputs } = require("./input");
+const { createPr } = require("./github");
 
 async function main() {
   const inputs = await getInputs();
   const creds = getGitCredentials();
   setGitCredentials(inputs.githubToken);
   try {
-    renameTemplate(inputs)
-    mergeTemplate(inputs)
-    commit()
-    push()
+    renameTemplate(inputs);
+    mergeTemplate(inputs);
+    commit();
+    push();
+    await createPr(inputs.prTitle);
   } finally {
     setGitCredentials(creds);
   }
 }
 
 function renameTemplate(inputs) {
-  checkoutTemplate(inputs.templateRepo)
+  checkoutTemplate(inputs.templateRepo);
   rename(inputs);
 }
 
 function mergeTemplate(inputs) {
-  merge(inputs.prBranchName)
+  merge(inputs.prBranch);
   const trackedFiles = listFiles();
   if (inputs.ignorePaths.length) {
     const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
     for (const f of ignoredFiles) {
-      restore(f)
+      restore(f);
     }
   }
 }
-
 
 function rename(inputs) {
   let files = listFiles();

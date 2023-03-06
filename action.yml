@@ -10,15 +10,19 @@ inputs:
     description: "New project name of the repository created"
   ignore-paths:
     description: "Paths to ignore"
-  commit-message:
-    description: "Commit message"
-    default: "renamed"
-  pr-branch-prefix:
-    description: "PR branch prefix"
-    default: "template-sync/"
   github-token:
     description: "GitHub token"
+  default-github-token:
+    description: "Default gitHub token"
     default: ${{ github.token }}
+  pr-branch:
+    description: "PR branch"
+    default: "template-sync"
+  pr-title:
+    description: "PR title"
+    default: "Template sync"
+  pr-labels:
+    description: "PR labels"
   dry-run:
     description: "Dry run or not"
     default: "false"

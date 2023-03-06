@@ -16378,6 +16378,9 @@ const getInputs = async () => {
     owner: context.repo.owner,
     repo: context.repo.repo,
   });
+  if (!res.data.template_repository) {
+    throw new Error("Could not get template repository.")
+  }
   const templateRepo = res.data.template_repository.full_name;
 
   if (!(fromName && toName)) {

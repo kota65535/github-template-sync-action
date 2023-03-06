@@ -16280,6 +16280,7 @@ function checkoutTemplateMain(repo) {
 }
 
 function merge(prBranch) {
+  exec("git", ["checkout", "-b", "main", "origin/main"]);
   exec("git", ["checkout", "-b", prBranch, "main"]);
   try {
     exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
@@ -16325,12 +16326,12 @@ function setGitCredentials(token) {
 
 function commit(message) {
   setUserAsBot();
-  try {
-    exec("git", ["diff", "--quiet"]);
-    return;
-  } catch (e) {
-    // do nothing
-  }
+  // try {
+  //   exec("git", ["diff", "--quiet"]);
+  //   return;
+  // } catch (e) {
+  //   // do nothing
+  // }
   exec("git", ["add", "."]);
   if (message) {
     exec("git", ["commit", "-m", message]);

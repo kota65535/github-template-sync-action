@@ -16429,9 +16429,10 @@ module.exports = {
 /***/ 1713:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const micromatch = __nccwpck_require__(6228);
 const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
+const core = __nccwpck_require__(2186);
+const micromatch = __nccwpck_require__(6228);
 const { toJoined, toSnake, toCamel, toPascal } = __nccwpck_require__(6254);
 const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplateMain, merge, commit, restore, push } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
@@ -16467,10 +16468,11 @@ function mergeTemplate(inputs) {
 
 function rename(inputs) {
   let files = listFiles();
+  core.info(`${files.length} files`);
   if (inputs.ignorePaths) {
     files = micromatch.not(files, inputs.ignorePaths);
   }
-  console.info(`${files.length} files`);
+  core.info(`${files.length} files`);
 
   const conversions = getConversions(inputs);
 

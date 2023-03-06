@@ -1,6 +1,7 @@
-const micromatch = require("micromatch");
 const path = require("path");
 const fs = require("fs");
+const core = require("@actions/core");
+const micromatch = require("micromatch");
 const { toJoined, toSnake, toCamel, toPascal } = require("./util");
 const { getGitCredentials, setGitCredentials, listFiles, checkoutTemplateMain, merge, commit, restore, push } = require("./git");
 const { getInputs } = require("./input");
@@ -36,10 +37,11 @@ function mergeTemplate(inputs) {
 
 function rename(inputs) {
   let files = listFiles();
+  core.info(`${files.length} files`);
   if (inputs.ignorePaths) {
     files = micromatch.not(files, inputs.ignorePaths);
   }
-  console.info(`${files.length} files`);
+  core.info(`${files.length} files`);
 
   const conversions = getConversions(inputs);
 

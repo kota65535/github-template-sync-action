@@ -17,6 +17,7 @@ const getInputs = async () => {
     .getInput("pr-labels")
     .split("\n")
     .filter((f) => f);
+  const templateSyncFile = core.getInput("template-sync-file");
   const dryRun = core.getInput("dry-run") === "true";
 
   githubToken = githubToken || process.env.GITHUB_TOKEN || defaultGithubToken;
@@ -28,17 +29,15 @@ const getInputs = async () => {
 
   const repo = await getRepo();
   if (!repo.template_repository) {
-    throw new Error("Could not get template repository.");
+    throw new Error("Could not get the template repository.");
   }
   const templateRepo = repo.template_repository.full_name;
 
   if (!fromName) {
     fromName = repo.template_repository.name;
-    console.info(`Using '${fromName}' as from-name`);
   }
   if (!toName) {
     toName = repo.name;
-    console.info(`Using '${toName}' as to-name`);
   }
   if (!prBase) {
     prBase = repo.default_branch;
@@ -53,10 +52,11 @@ const getInputs = async () => {
     prBase,
     prTitle,
     prLabels,
+    templateSyncFile,
     dryRun,
     templateRepo,
   };
-  console.info(ret);
+  core.info(JSON.stringify(ret));
   return ret;
 };
 

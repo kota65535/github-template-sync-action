@@ -16298,6 +16298,11 @@ function listFiles() {
   return stdout.split("\n");
 }
 
+function listDiffFiles(fromCommit) {
+  const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
+  return stdout.split("\n");
+}
+
 function setUserAsBot() {
   exec("git", ["config", "user.email", "github-actions[bot]@users.noreply.github.com"]);
   exec("git", ["config", "user.name", "github-actions[bot]"]);
@@ -16344,14 +16349,15 @@ function push() {
 }
 
 module.exports = {
+  checkoutTemplate,
+  merge,
+  restore,
   listFiles,
+  listDiffFiles,
   getGitCredentials,
   setGitCredentials,
   commit,
   push,
-  checkoutTemplate,
-  merge,
-  restore,
 };
 
 
@@ -16441,6 +16447,7 @@ const getInputs = async () => {
     .getInput("pr-labels")
     .split("\n")
     .filter((f) => f);
+  const templateSyncFile = core.getInput("template-sync-file");
   const dryRun = core.getInput("dry-run") === "true";
 
   githubToken = githubToken || process.env.GITHUB_TOKEN || defaultGithubToken;
@@ -16452,17 +16459,15 @@ const getInputs = async () => {
 
   const repo = await getRepo();
   if (!repo.template_repository) {
-    throw new Error("Could not get template repository.");
+    throw new Error("Could not get the template repository.");
   }
   const templateRepo = repo.template_repository.full_name;
 
   if (!fromName) {
     fromName = repo.template_repository.name;
-    console.info(`Using '${fromName}' as from-name`);
   }
   if (!toName) {
     toName = repo.name;
-    console.info(`Using '${toName}' as to-name`);
   }
   if (!prBase) {
     prBase = repo.default_branch;
@@ -16477,10 +16482,11 @@ const getInputs = async () => {
     prBase,
     prTitle,
     prLabels,
+    templateSyncFile,
     dryRun,
     templateRepo,
   };
-  console.info(ret);
+  core.info(JSON.stringify(ret));
   return ret;
 };
 
@@ -16498,7 +16504,7 @@ const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
 const core = __nccwpck_require__(2186);
 const micromatch = __nccwpck_require__(6228);
-const { toJoined, toSnake, toCamel, toPascal } = __nccwpck_require__(6254);
+const { createConversions, convert } = __nccwpck_require__(6254);
 const {
   getGitCredentials,
   setGitCredentials,
@@ -16508,6 +16514,7 @@ const {
   commit,
   restore,
   push,
+  listDiffFiles,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
@@ -16525,29 +16532,24 @@ async function main() {
 }
 
 async function sync(inputs) {
-  checkoutTemplate(inputs.templateRepo);
-  renameTemplate(inputs);
-  mergeTemplate(inputs);
+  const files = renameTemplate(inputs);
+  core.info(`changed files: ${files.length}`);
+  mergeTemplate(inputs, files);
   commit();
   push();
   await createOrUpdatePr(inputs);
 }
 
-async function createOrUpdatePr(inputs) {
-  const prs = await listPrs(inputs.prHead, inputs.prBase);
-  if (prs.length) {
-    const prNum = prs[0].number;
-    await updatePr(prNum, inputs.prTitle, inputs.prHead, inputs.prBase);
-  } else {
-    await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
-  }
+function renameTemplate(inputs) {
+  checkoutTemplate(inputs.templateRepo);
+  rename(inputs.fromName, inputs.toName);
+  return getTemplateChangedFiles(inputs.templateSyncFile);
 }
 
-function mergeTemplate(inputs) {
+function mergeTemplate(inputs, files) {
   merge(inputs.prHead);
-  const trackedFiles = listFiles();
   if (inputs.ignorePaths.length) {
-    const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
+    const ignoredFiles = micromatch(files, inputs.ignorePaths);
     core.info(`${ignoredFiles.length} files to ignore`);
     for (const f of ignoredFiles) {
       restore(f);
@@ -16555,25 +16557,34 @@ function mergeTemplate(inputs) {
   }
 }
 
-function renameTemplate(inputs) {
-  let files = listFiles();
-  if (inputs.ignorePaths.length) {
-    files = micromatch.not(files, inputs.ignorePaths);
+function getTemplateChangedFiles(inputs) {
+  let files;
+  if (fs.existsSync(inputs.templateSyncFile)) {
+    const lastSyncCommit = fs.readFileSync(inputs.templateSyncFile, "utf8");
+    files = listDiffFiles(lastSyncCommit);
+  } else {
+    files = listFiles();
   }
-  core.info(`${files.length} files`);
+  const conversions = createConversions(inputs);
+  return files.map((f) => convert(conversions, f));
+}
 
-  const conversions = getConversions(inputs);
+function rename(fromName, toName) {
+  const files = listFiles();
+  core.info(`${files.length} files to replace`);
+
+  const conversions = createConversions(fromName, toName);
 
   // Replace file contents
   for (const t of files) {
-    let s = fs.readFileSync(t, "utf-8");
+    let s = fs.readFileSync(t, "utf8");
     s = convert(conversions, s);
-    fs.writeFileSync(t, s, "utf-8");
+    fs.writeFileSync(t, s, "utf8");
   }
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  core.info(`${filesAndDirs.length} files and directories`);
+  core.info(`${filesAndDirs.length} files and directories to rename`);
 
   // Rename files and directories
   const cwd = process.cwd();
@@ -16590,36 +16601,6 @@ function renameTemplate(inputs) {
   }
 
   commit("renamed");
-}
-
-function getConversions(inputs) {
-  return [
-    {
-      from: inputs.fromName,
-      to: inputs.toName,
-    },
-    {
-      from: toJoined(inputs.fromName),
-      to: toJoined(inputs.toName),
-    },
-    {
-      from: toSnake(inputs.fromName),
-      to: toSnake(inputs.toName),
-    },
-    {
-      from: toCamel(inputs.fromName),
-      to: toCamel(inputs.toName),
-    },
-    {
-      from: toPascal(inputs.fromName),
-      to: toPascal(inputs.toName),
-    },
-  ];
-}
-
-function convert(conversions, str) {
-  conversions.forEach((c) => (str = str.replaceAll(c.from, c.to)));
-  return str;
 }
 
 function getDirsFromFiles(files) {
@@ -16646,9 +16627,20 @@ function getDirsFromFiles(files) {
   return ret;
 }
 
+async function createOrUpdatePr(inputs) {
+  const prs = await listPrs(inputs.prHead, inputs.prBase);
+  if (prs.length) {
+    const prNum = prs[0].number;
+    core.info(`updating existing PR #${prNum}`);
+    await updatePr(prNum, inputs.prTitle, inputs.prHead, inputs.prBase);
+  } else {
+    core.info("creating PR");
+    await createPr(inputs.prTitle, inputs.prHead, inputs.prBase);
+  }
+}
+
 module.exports = {
   main,
-  rename: renameTemplate,
 };
 
 
@@ -16678,11 +16670,39 @@ function toPascal(str) {
   return tokens.map((s) => `${s[0].toUpperCase()}${s.slice(1)}`).join("");
 }
 
+function createConversions(fromName, toName) {
+  return [
+    {
+      from: fromName,
+      to: toName,
+    },
+    {
+      from: toJoined(fromName),
+      to: toJoined(toName),
+    },
+    {
+      from: toSnake(fromName),
+      to: toSnake(toName),
+    },
+    {
+      from: toCamel(fromName),
+      to: toCamel(toName),
+    },
+    {
+      from: toPascal(fromName),
+      to: toPascal(toName),
+    },
+  ];
+}
+
+function convert(conversions, str) {
+  conversions.forEach((c) => (str = str.replaceAll(c.from, c.to)));
+  return str;
+}
+
 module.exports = {
-  toJoined,
-  toSnake,
-  toCamel,
-  toPascal,
+  createConversions,
+  convert,
 };
 
 

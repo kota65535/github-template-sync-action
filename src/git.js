@@ -28,6 +28,11 @@ function listFiles() {
   return stdout.split("\n");
 }
 
+function listDiffFiles(fromCommit) {
+  const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
+  return stdout.split("\n");
+}
+
 function setUserAsBot() {
   exec("git", ["config", "user.email", "github-actions[bot]@users.noreply.github.com"]);
   exec("git", ["config", "user.name", "github-actions[bot]"]);
@@ -74,12 +79,13 @@ function push() {
 }
 
 module.exports = {
+  checkoutTemplate,
+  merge,
+  restore,
   listFiles,
+  listDiffFiles,
   getGitCredentials,
   setGitCredentials,
   commit,
   push,
-  checkoutTemplate,
-  merge,
-  restore,
 };

@@ -28,6 +28,9 @@ inputs:
   dry-run:
     description: "Dry run or not"
     default: "false"
+  template-sync-file:
+    description: "Template sync file"
+    default: ".templatesync"
 runs:
   using: "node16"
   main: "dist/index.js"

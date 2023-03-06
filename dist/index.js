@@ -16287,6 +16287,7 @@ function merge(prBranch, prBase, templateBranch) {
   } catch (e) {
     // no-op
   }
+  exec("git", ["reset"]);
 }
 
 function restore(path) {

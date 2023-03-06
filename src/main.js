@@ -39,7 +39,7 @@ async function sync(inputs) {
 
   files.push(inputs.templateSyncFile);
 
-  if (inputs.remote) {
+  if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
   }

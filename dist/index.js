@@ -16440,7 +16440,6 @@ async function main() {
 function renameTemplate(inputs) {
   checkoutTemplateMain(inputs.templateRepo)
   rename(inputs);
-  commit("renamed")
 }
 
 function mergeTemplate(inputs) {
@@ -16454,8 +16453,6 @@ function mergeTemplate(inputs) {
 
 
 function rename(inputs) {
-  setGitCredentials(inputs.githubToken);
-
   const trackedFiles = listFiles();
   const targetFiles = micromatch.not(trackedFiles, inputs.ignorePaths);
   console.info(`${targetFiles.length} files`);
@@ -16487,11 +16484,7 @@ function rename(inputs) {
     }
   }
 
-  if (!inputs.dryRun) {
-    commitAndPush(inputs.commitMessage);
-  } else {
-    console.info("Skip commit & push because dry-run is true");
-  }
+  commit(inputs.commitMessage);
 }
 
 function getConversions(inputs) {

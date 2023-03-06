@@ -25,7 +25,7 @@ function renameTemplate(inputs) {
 }
 
 function mergeTemplate(inputs) {
-  merge()
+  merge(inputs.prBranchName)
   const trackedFiles = listFiles();
   const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
   for (const f of ignoredFiles) {

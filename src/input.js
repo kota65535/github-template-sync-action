@@ -41,12 +41,13 @@ const getInputs = async () => {
       console.info(`Using '${toName}' as to-name`);
     }
   }
+  const prBranchName = `${prBranchPrefix}-${context.sha}`
 
   const ret = {
     templateRepo,
     fromName,
     toName,
-    prBranchPrefix,
+    prBranchName,
     githubToken,
     commitMessage,
     ignorePaths,

@@ -9,8 +9,8 @@ function checkoutTemplateMain(repo) {
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
 }
 
-function merge() {
-  exec("git", ["checkout", "-b", "template-sync", "main"]);
+function merge(prBranch) {
+  exec("git", ["checkout", "-b", prBranch, "main"]);
   try {
     exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
@@ -70,7 +70,7 @@ function commit(message) {
 }
 
 function push() {
-  exec("git", ["push", "origin", "HEAD"]);
+  exec("git", ["push", "-f", "origin", "HEAD"]);
 }
 
 module.exports = {

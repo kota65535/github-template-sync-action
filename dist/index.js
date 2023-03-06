@@ -16277,8 +16277,8 @@ function checkoutTemplateMain(repo) {
   exec("git", ["checkout", "-b", "template/main", "template/main"]);
 }
 
-function merge() {
-  exec("git", ["checkout", "-b", "template-sync", "main"]);
+function merge(prBranch) {
+  exec("git", ["checkout", "-b", prBranch, "main"]);
   try {
     exec("git", ["merge", "template/main", "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
@@ -16338,7 +16338,7 @@ function commit(message) {
 }
 
 function push() {
-  exec("git", ["push", "origin", "HEAD"]);
+  exec("git", ["push", "-f", "origin", "HEAD"]);
 }
 
 module.exports = {
@@ -16401,12 +16401,13 @@ const getInputs = async () => {
       console.info(`Using '${toName}' as to-name`);
     }
   }
+  const prBranchName = `${prBranchPrefix}-${context.sha}`
 
   const ret = {
     templateRepo,
     fromName,
     toName,
-    prBranchPrefix,
+    prBranchName,
     githubToken,
     commitMessage,
     ignorePaths,
@@ -16453,7 +16454,7 @@ function renameTemplate(inputs) {
 }
 
 function mergeTemplate(inputs) {
-  merge()
+  merge(inputs.prBranchName)
   const trackedFiles = listFiles();
   const ignoredFiles = micromatch(trackedFiles, inputs.ignorePaths);
   for (const f of ignoredFiles) {

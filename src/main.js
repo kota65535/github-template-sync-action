@@ -66,15 +66,17 @@ async function sync(inputs) {
 
   // Exclude files to be ignored
   files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`${files.length} changed files with ignored: ${JSON.stringify(files, null, 2)}`);
+  core.info(`${files.length} changed files after ignoring: ${JSON.stringify(files, null, 2)}`);
 
   // Merge
   merge(workingBranch);
   commit(files, "merged template");
+  reset();
 
   // Update templatesync file
   fs.writeFileSync(inputs.templateSyncFile, templateBranchLatestCommit, "utf8");
   commit([inputs.templateSyncFile], "updated template sync file");
+  reset();
 
   // Push
   push();

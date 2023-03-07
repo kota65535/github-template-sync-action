@@ -115,7 +115,7 @@ function rename(files, fromName, toName) {
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  core.info(`renaming ${filesAndDirs.length} files and directories: ${toJson(files)}`);
+  core.info(`renaming ${filesAndDirs.length} files and directories: ${toJson(filesAndDirs)}`);
 
   // Rename files and directories
   const cwd = process.cwd();

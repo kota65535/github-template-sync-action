@@ -16254,6 +16254,7 @@ const core = __nccwpck_require__(2186);
 const exec = (file, options) => {
   core.debug(`running command: ${file} ${(options || []).join(" ")}`);
   const res = execa.sync(file, options);
+  core.debug(res.exitCode);
   core.debug(res.stdout);
   return res;
 };
@@ -16595,14 +16596,14 @@ async function sync(inputs) {
     reset();
   }
 
-  core.info(`changed files: ${files.length}`);
+  core.info(`${files.length} changed files: ${JSON.stringify(files, null, 2)}`);
 
   // Checkout PR branch
   createBranch(inputs.prBranch, inputs.prBase);
 
   // Exclude files to be ignored
   files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`changed files with ignored: ${files.length}`);
+  core.info(`${files.length} changed files with ignored: ${JSON.stringify(files, null, 2)}`);
 
   // Merge
   merge(workingBranch);

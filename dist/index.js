@@ -16388,7 +16388,7 @@ function restore(path) {
 
 function listFiles() {
   const { stdout } = exec("git", ["ls-files"]);
-  return stdout.split("\n");
+  return stdout.split("\n").filter((s) => s);
 }
 
 function getLatestCommit() {
@@ -16398,7 +16398,7 @@ function getLatestCommit() {
 
 function listDiffFiles(fromCommit) {
   const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
-  return stdout.split("\n");
+  return stdout.split("\n").filter((s) => s);
 }
 
 function setUserAsBot() {

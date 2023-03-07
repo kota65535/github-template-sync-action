@@ -16679,10 +16679,14 @@ async function sync(inputs) {
   let files;
   if (lastSyncCommit) {
     files = listDiffFiles(lastSyncCommit);
-    core.info(`${files.length} changed files from the last sync ${lastSyncCommit}: ${toJson(files)}`);
+    core.startGroup(`${files.length} changed files from the last sync ${lastSyncCommit}`);
+    core.info(toJson(files));
+    core.endGroup();
   } else {
     files = listFiles();
-    core.info(`${files.length} changed files: ${toJson(files)}`);
+    core.startGroup(`${files.length} changed files`);
+    core.info(toJson(files));
+    core.endGroup();
   }
 
   // Replace/Rename if needed
@@ -16696,8 +16700,14 @@ async function sync(inputs) {
   createBranch(inputs.prBranch, inputs.prBase);
 
   // Exclude files to be ignored
-  files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`merging ${files.length} files: ${toJson(files)}`);
+  let ignored;
+  [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
+  core.startGroup(`ignored ${ignored.length} files`);
+  core.info(toJson(ignored));
+  core.endGroup();
+  core.startGroup(`merging ${files.length} files`);
+  core.info(toJson(files));
+  core.endGroup();
 
   // Merge
   merge(workingBranch);
@@ -16718,9 +16728,9 @@ async function sync(inputs) {
 
 function ignoreFiles(files, ignorePaths) {
   if (ignorePaths.length) {
-    return micromatch.not(files, ignorePaths);
+    return [micromatch.not(files, ignorePaths), micromatch(files, ignorePaths)];
   } else {
-    return files;
+    return [files, []];
   }
 }
 

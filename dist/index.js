@@ -16622,7 +16622,7 @@ function ignoreFiles(files, ignorePaths) {
 
 function getLastTemplateSyncCommit(syncCommitFile) {
   if (fs.existsSync(syncCommitFile)) {
-    return fs.readFileSync(syncCommitFile, "utf8");
+    return fs.readFileSync(syncCommitFile, "utf8").trim();
   } else {
     return null;
   }

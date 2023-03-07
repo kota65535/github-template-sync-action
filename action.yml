@@ -1,0 +1,41 @@
+name: "Template Repository Sync"
+description: ""
+branding:
+  icon: "copy"
+  color: "white"
+inputs:
+  rename:
+    description: "Rename or not"
+    default: "false"
+  from-name:
+    description: "Original project name from the template repository"
+  to-name:
+    description: "New project name of the repository created"
+  ignore-paths:
+    description: "Paths to ignore"
+  github-token:
+    description: "GitHub token"
+  default-github-token:
+    description: "Default gitHub token"
+    default: ${{ github.token }}
+  template-branch:
+    description: "Template repository branch"
+  pr-branch:
+    description: "PR head branch"
+    default: "template-sync"
+  pr-base-branch:
+    description: "PR base branch"
+  pr-title:
+    description: "PR title"
+    default: "Template sync"
+  pr-labels:
+    description: "PR labels"
+  dry-run:
+    description: "Dry run or not"
+    default: "false"
+  template-sync-file:
+    description: "Template sync file"
+    default: ".templatesync"
+runs:
+  using: "node16"
+  main: "dist/index.js"

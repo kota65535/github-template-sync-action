@@ -1,7 +1,7 @@
 {
   "name": "github-template-sync-action",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "GitHub Action for syncing the upstream template repository change",
   "keywords": [
     "github",
     "actions"

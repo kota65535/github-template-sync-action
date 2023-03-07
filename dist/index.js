@@ -16440,7 +16440,7 @@ function commit(files, message) {
     exec("git", ["add", "."]);
   }
   try {
-    exec("git", ["diff-index", "--quiet", "HEAD"]);
+    exec("git", ["diff-index", "--cached", "--quiet", "HEAD"]);
     return;
   } catch (e) {
     // do nothing

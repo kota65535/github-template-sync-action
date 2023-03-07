@@ -42,17 +42,18 @@ async function sync(inputs) {
   fetchRemote(inputs.templateRepo.owner, inputs.templateRepo.name, remote);
   createBranch(workingBranch, workingBranch);
 
-  const templateBranchLatestCommit = getLatestCommit();
+  // Get the latest commit of the template repository
+  const latestCommit = getLatestCommit();
 
   // Get changed files from the last synchronized commit to HEAD
   let files;
   if (lastSyncCommit) {
     files = listDiffFiles(lastSyncCommit);
+    core.info(`${files.length} changed files from the last sync commit ${lastSyncCommit}: ${toJson(files)}`);
   } else {
     files = listFiles();
+    core.info(`${files.length} changed files: ${toJson(files)}`);
   }
-
-  core.info(`${files.length} changed files in template: ${toJson(files)}`);
 
   // Replace/Rename if needed
   if (inputs.rename) {
@@ -74,7 +75,7 @@ async function sync(inputs) {
   reset();
 
   // Update templatesync file
-  fs.writeFileSync(inputs.templateSyncFile, templateBranchLatestCommit, "utf8");
+  fs.writeFileSync(inputs.templateSyncFile, latestCommit, "utf8");
   commit([inputs.templateSyncFile], "updated template sync file");
   reset();
 

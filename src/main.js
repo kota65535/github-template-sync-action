@@ -59,14 +59,14 @@ async function sync(inputs) {
     reset();
   }
 
-  core.info(`${files.length} changed files: ${JSON.stringify(files, null, 2)}`);
+  core.info(`${files.length} changed files: ${toJson(files)}`);
 
   // Checkout PR branch
   createBranch(inputs.prBranch, inputs.prBase);
 
   // Exclude files to be ignored
   files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`${files.length} changed files after ignoring: ${JSON.stringify(files, null, 2)}`);
+  core.info(`${files.length} changed files after ignoring: ${toJson(files)}`);
 
   // Merge
   merge(workingBranch);
@@ -102,7 +102,7 @@ function getLastTemplateSyncCommit(syncCommitFile) {
 }
 
 function rename(files, fromName, toName) {
-  core.info(`${files.length} files to replace`);
+  core.info(`replacing ${files.length} files: ${toJson(files)}`);
 
   const conversions = createConversions(fromName, toName);
 
@@ -115,7 +115,7 @@ function rename(files, fromName, toName) {
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  core.info(`${filesAndDirs.length} files and directories to rename`);
+  core.info(`renaming ${filesAndDirs.length} files and directories: ${toJson(files)}`);
 
   // Rename files and directories
   const cwd = process.cwd();
@@ -168,6 +168,10 @@ async function createOrUpdatePr(inputs) {
     core.info("creating PR");
     await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
   }
+}
+
+function toJson(obj) {
+  return JSON.stringify(obj, null, 2);
 }
 
 module.exports = {

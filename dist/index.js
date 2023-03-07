@@ -16685,7 +16685,7 @@ async function sync(inputs) {
   } else {
     files = listFiles();
     core.startGroup(`${files.length} changed files`);
-    core.info(toJson(files));
+    console.log(files);
     core.endGroup();
   }
 
@@ -16703,10 +16703,10 @@ async function sync(inputs) {
   let ignored;
   [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
   core.startGroup(`ignored ${ignored.length} files`);
-  core.info(toJson(ignored));
+  console.log(ignored);
   core.endGroup();
   core.startGroup(`merging ${files.length} files`);
-  core.info(toJson(files));
+  console.log(files);
   core.endGroup();
 
   // Merge

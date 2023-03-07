@@ -15,6 +15,7 @@ const {
   createBranch,
   getLatestCommit,
   reset,
+  getDiffCommits,
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr, addLabels } = require("./github");
@@ -87,8 +88,10 @@ async function sync(inputs) {
   // Push
   push();
 
-  // Create PR
-  await createOrUpdatePr(inputs);
+  // Create PR if there is any commit
+  if (getDiffCommits(inputs.prBase, inputs.prBranch).length > 0) {
+    await createOrUpdatePr(inputs);
+  }
 }
 
 function ignoreFiles(files, ignorePaths) {

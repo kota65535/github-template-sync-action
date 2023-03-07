@@ -16457,6 +16457,11 @@ function reset() {
   exec("git", ["clean", "-fd"]);
 }
 
+function getDiffCommits(refA, refB) {
+  const { stdout } = exec("git", ["log", `${refA}..${refB}`, "--oneline", "--no-merges"]);
+  return stdout.split("\n").filter((s) => s);
+}
+
 module.exports = {
   fetchRemote,
   createBranch,
@@ -16470,6 +16475,7 @@ module.exports = {
   commit,
   push,
   reset,
+  getDiffCommits
 };
 
 
@@ -16655,6 +16661,7 @@ const {
   createBranch,
   getLatestCommit,
   reset,
+  getDiffCommits,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr, addLabels } = __nccwpck_require__(8396);
@@ -16727,8 +16734,10 @@ async function sync(inputs) {
   // Push
   push();
 
-  // Create PR
-  await createOrUpdatePr(inputs);
+  // Create PR if there is any commit
+  if (getDiffCommits(inputs.prBase, inputs.prBranch).length > 0) {
+    await createOrUpdatePr(inputs);
+  }
 }
 
 function ignoreFiles(files, ignorePaths) {

@@ -97,6 +97,11 @@ function reset() {
   exec("git", ["clean", "-fd"]);
 }
 
+function getDiffCommits(refA, refB) {
+  const { stdout } = exec("git", ["log", `${refA}..${refB}`, "--oneline", "--no-merges"]);
+  return stdout.split("\n").filter((s) => s);
+}
+
 module.exports = {
   fetchRemote,
   createBranch,
@@ -110,4 +115,5 @@ module.exports = {
   commit,
   push,
   reset,
+  getDiffCommits
 };

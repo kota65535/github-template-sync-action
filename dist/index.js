@@ -16245,6 +16245,96 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 4255:
+/***/ ((module) => {
+
+function toJoined(str) {
+  return str.replace("-", "");
+}
+
+function toSnake(str) {
+  return str.replace("-", "_");
+}
+
+function toCamel(str) {
+  const tokens = str.split("-");
+  return `${tokens[0]}${tokens
+    .slice(1)
+    .map((s) => `${s[0].toUpperCase()}${s.slice(1)}`)
+    .join("")}`;
+}
+
+function toPascal(str) {
+  const tokens = str.split("-");
+  return tokens.map((s) => `${s[0].toUpperCase()}${s.slice(1)}`).join("");
+}
+
+function toKebab(str) {
+  for (const c of str) {
+    switch (c) {
+      case "-":
+        return str;
+      case "_":
+        return str.replaceAll("_", "-");
+    }
+  }
+
+  let ret = str[0].toLowerCase();
+  for (const c of str.slice(1)) {
+    if (c === c.toUpperCase()) {
+      ret += `-${c.toLowerCase()}`;
+    } else {
+      ret += c;
+    }
+  }
+  return ret;
+}
+
+function createConversions(fromName, toName) {
+  fromName = toKebab(fromName);
+  toName = toKebab(toName);
+  return [
+    {
+      from: fromName,
+      to: toName,
+    },
+    {
+      from: toJoined(fromName),
+      to: toJoined(toName),
+    },
+    {
+      from: toSnake(fromName),
+      to: toSnake(toName),
+    },
+    {
+      from: toCamel(fromName),
+      to: toCamel(toName),
+    },
+    {
+      from: toPascal(fromName),
+      to: toPascal(toName),
+    },
+  ];
+}
+
+function convert(conversions, str) {
+  conversions.forEach((c) => (str = str.replaceAll(c.from, c.to)));
+  return str;
+}
+
+module.exports = {
+  createConversions,
+  convert,
+  toJoined,
+  toSnake,
+  toCamel,
+  toPascal,
+  toKebab,
+};
+
+
+/***/ }),
+
 /***/ 3264:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -16254,7 +16344,6 @@ const core = __nccwpck_require__(2186);
 const exec = (file, options) => {
   core.debug(`running command: ${file} ${(options || []).join(" ")}`);
   const res = execa.sync(file, options);
-  core.debug(res.exitCode);
   core.debug(res.stdout);
   return res;
 };
@@ -16380,7 +16469,7 @@ module.exports = {
   setGitCredentials,
   commit,
   push,
-  reset
+  reset,
 };
 
 
@@ -16455,6 +16544,7 @@ module.exports = {
 
 const core = __nccwpck_require__(2186);
 const { initOctokit, getRepo } = __nccwpck_require__(8396);
+const { toJson } = __nccwpck_require__(6254);
 
 const getInputs = async () => {
   const rename = core.getInput("rename") === "true";
@@ -16521,7 +16611,7 @@ const getInputs = async () => {
       name: templateRepo.name,
     },
   };
-  core.info(JSON.stringify(ret, null, 2));
+  core.info(toJson(ret));
   return ret;
 };
 
@@ -16539,7 +16629,7 @@ const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
 const core = __nccwpck_require__(2186);
 const micromatch = __nccwpck_require__(6228);
-const { createConversions, convert } = __nccwpck_require__(6254);
+const { createConversions, convert } = __nccwpck_require__(4255);
 const {
   getGitCredentials,
   setGitCredentials,
@@ -16555,6 +16645,7 @@ const {
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
+const { toJson } = __nccwpck_require__(6254);
 
 async function main() {
   const inputs = await getInputs();
@@ -16586,7 +16677,7 @@ async function sync(inputs) {
   let files;
   if (lastSyncCommit) {
     files = listDiffFiles(lastSyncCommit);
-    core.info(`${files.length} changed files from the last sync commit ${lastSyncCommit}: ${toJson(files)}`);
+    core.info(`${files.length} changed files from the last sync ${lastSyncCommit}: ${toJson(files)}`);
   } else {
     files = listFiles();
     core.info(`${files.length} changed files: ${toJson(files)}`);
@@ -16708,10 +16799,6 @@ async function createOrUpdatePr(inputs) {
   }
 }
 
-function toJson(obj) {
-  return JSON.stringify(obj, null, 2);
-}
-
 module.exports = {
   main,
 };
@@ -16722,88 +16809,12 @@ module.exports = {
 /***/ 6254:
 /***/ ((module) => {
 
-function toJoined(str) {
-  return str.replace("-", "");
-}
-
-function toSnake(str) {
-  return str.replace("-", "_");
-}
-
-function toCamel(str) {
-  const tokens = str.split("-");
-  return `${tokens[0]}${tokens
-    .slice(1)
-    .map((s) => `${s[0].toUpperCase()}${s.slice(1)}`)
-    .join("")}`;
-}
-
-function toPascal(str) {
-  const tokens = str.split("-");
-  return tokens.map((s) => `${s[0].toUpperCase()}${s.slice(1)}`).join("");
-}
-
-function toKebab(str) {
-  for (const c of str) {
-    switch (c) {
-      case "-":
-        return str;
-      case "_":
-        return str.replaceAll("_", "-");
-    }
-  }
-
-  let ret = str[0].toLowerCase();
-  for (const c of str.slice(1)) {
-    if (c === c.toUpperCase()) {
-      ret += `-${c.toLowerCase()}`;
-    } else {
-      ret += c;
-    }
-  }
-  return ret;
-}
-
-function createConversions(fromName, toName) {
-  fromName = toKebab(fromName);
-  toName = toKebab(toName);
-  return [
-    {
-      from: fromName,
-      to: toName,
-    },
-    {
-      from: toJoined(fromName),
-      to: toJoined(toName),
-    },
-    {
-      from: toSnake(fromName),
-      to: toSnake(toName),
-    },
-    {
-      from: toCamel(fromName),
-      to: toCamel(toName),
-    },
-    {
-      from: toPascal(fromName),
-      to: toPascal(toName),
-    },
-  ];
-}
-
-function convert(conversions, str) {
-  conversions.forEach((c) => (str = str.replaceAll(c.from, c.to)));
-  return str;
+function toJson(obj) {
+  return JSON.stringify(obj, null, 2);
 }
 
 module.exports = {
-  createConversions,
-  convert,
-  toJoined,
-  toSnake,
-  toCamel,
-  toPascal,
-  toKebab,
+  toJson,
 };
 
 

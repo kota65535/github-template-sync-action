@@ -1,5 +1,6 @@
 const core = require("@actions/core");
 const { initOctokit, getRepo } = require("./github");
+const { toJson } = require("./util");
 
 const getInputs = async () => {
   const rename = core.getInput("rename") === "true";
@@ -66,7 +67,7 @@ const getInputs = async () => {
       name: templateRepo.name,
     },
   };
-  core.info(JSON.stringify(ret, null, 2));
+  core.info(toJson(ret));
   return ret;
 };
 

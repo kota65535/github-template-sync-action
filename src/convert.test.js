@@ -1,7 +1,5 @@
 const assert = require("assert");
-const { toJoined, toSnake, toCamel, toPascal, toKebab } = require("./util");
-const { listFiles } = require("./git");
-const micromatch = require("micromatch");
+const { toJoined, toSnake, toCamel, toPascal, toKebab } = require("./convert");
 
 describe("util", () => {
   it("kebab to joined", () => {
@@ -27,10 +25,5 @@ describe("util", () => {
   });
   it("pascal to kebab", () => {
     assert.equal(toKebab("FooBar"), "foo-bar");
-  });
-  it("aaa to kebab", () => {
-    const trackedFiles = listFiles();
-    const targetFiles = micromatch.not(trackedFiles, []);
-    console.log(targetFiles);
   });
 });

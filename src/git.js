@@ -109,5 +109,5 @@ module.exports = {
   setGitCredentials,
   commit,
   push,
-  reset
+  reset,
 };

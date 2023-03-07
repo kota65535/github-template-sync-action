@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const core = require("@actions/core");
 const micromatch = require("micromatch");
-const { createConversions, convert } = require("./util");
+const { createConversions, convert } = require("./convert");
 const {
   getGitCredentials,
   setGitCredentials,
@@ -18,6 +18,7 @@ const {
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
+const { toJson } = require("./util");
 
 async function main() {
   const inputs = await getInputs();
@@ -49,7 +50,7 @@ async function sync(inputs) {
   let files;
   if (lastSyncCommit) {
     files = listDiffFiles(lastSyncCommit);
-    core.info(`${files.length} changed files from the last sync commit ${lastSyncCommit}: ${toJson(files)}`);
+    core.info(`${files.length} changed files from the last sync ${lastSyncCommit}: ${toJson(files)}`);
   } else {
     files = listFiles();
     core.info(`${files.length} changed files: ${toJson(files)}`);
@@ -169,10 +170,6 @@ async function createOrUpdatePr(inputs) {
     core.info("creating PR");
     await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
   }
-}
-
-function toJson(obj) {
-  return JSON.stringify(obj, null, 2);
 }
 
 module.exports = {

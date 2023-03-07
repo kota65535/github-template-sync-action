@@ -74,7 +74,7 @@ async function sync(inputs) {
 
   // Update templatesync file
   fs.writeFileSync(inputs.templateSyncFile, templateBranchLatestCommit, "utf8");
-  commit(files, "updated template sync file");
+  commit([inputs.templateSyncFile], "updated template sync file");
 
   // Push
   push();

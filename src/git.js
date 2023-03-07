@@ -92,6 +92,11 @@ function push() {
   exec("git", ["push", "-f", "origin", "HEAD"]);
 }
 
+function reset() {
+  exec("git", ["reset", "--hard"]);
+  exec("git", ["clean", "-fd"]);
+}
+
 module.exports = {
   fetchRemote,
   createBranch,
@@ -104,4 +109,5 @@ module.exports = {
   setGitCredentials,
   commit,
   push,
+  reset
 };

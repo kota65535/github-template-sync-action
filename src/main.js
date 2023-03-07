@@ -11,10 +11,10 @@ const {
   merge,
   commit,
   push,
-  getCurrentHash: getCurrentCommit,
   fetchRemote,
   createBranch,
   getLatestCommit,
+  reset,
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
@@ -56,6 +56,7 @@ async function sync(inputs) {
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
+    reset();
   }
 
   core.info(`changed files: ${files.length}`);

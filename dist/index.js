@@ -16362,6 +16362,11 @@ function push() {
   exec("git", ["push", "-f", "origin", "HEAD"]);
 }
 
+function reset() {
+  exec("git", ["reset", "--hard"]);
+  exec("git", ["clean", "-fd"]);
+}
+
 module.exports = {
   fetchRemote,
   createBranch,
@@ -16374,6 +16379,7 @@ module.exports = {
   setGitCredentials,
   commit,
   push,
+  reset
 };
 
 
@@ -16541,10 +16547,10 @@ const {
   merge,
   commit,
   push,
-  getCurrentHash: getCurrentCommit,
   fetchRemote,
   createBranch,
   getLatestCommit,
+  reset,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
@@ -16586,6 +16592,7 @@ async function sync(inputs) {
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
+    reset();
   }
 
   core.info(`changed files: ${files.length}`);

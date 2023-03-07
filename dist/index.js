@@ -16753,10 +16753,10 @@ function rename(files, fromName, toName) {
   const conversions = createConversions(fromName, toName);
 
   // Replace file contents
-  for (const t of files) {
-    let s = fs.readFileSync(t, "utf8");
+  for (const f of files) {
+    let s = fs.readFileSync(f, "utf8");
     s = convert(conversions, s);
-    fs.writeFileSync(t, s, "utf8");
+    fs.writeFileSync(f, s, "utf8");
   }
 
   // Get directories where the files are located
@@ -16765,9 +16765,9 @@ function rename(files, fromName, toName) {
 
   // Rename files and directories
   const cwd = process.cwd();
-  for (const t of filesAndDirs) {
-    const fromBase = path.basename(t);
-    const fromDir = path.dirname(t);
+  for (const f of filesAndDirs) {
+    const fromBase = path.basename(f);
+    const fromDir = path.dirname(f);
     const toBase = convert(conversions, fromBase);
     const toDir = convert(conversions, fromDir);
     if (fromBase !== toBase) {

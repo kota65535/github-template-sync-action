@@ -16363,8 +16363,8 @@ const { exec } = __nccwpck_require__(3264);
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function fetchRemote(owner, name, remote) {
-  exec("git", ["remote", "add", remote, `https://github.com/${owner}/${name}`]);
+function fetchRemote(fullName, remote) {
+  exec("git", ["remote", "add", remote, `https://github.com/${fullName}`]);
   exec("git", ["fetch", "--all"]);
 }
 
@@ -16475,7 +16475,7 @@ module.exports = {
   commit,
   push,
   reset,
-  getDiffCommits
+  getDiffCommits,
 };
 
 
@@ -16566,6 +16566,8 @@ const { initOctokit, getRepo } = __nccwpck_require__(8396);
 const { logJson } = __nccwpck_require__(6254);
 
 const getInputs = async () => {
+  let template = core.getInput("template");
+  let templateBranch = core.getInput("template-branch");
   const rename = core.getInput("rename") === "true";
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
@@ -16575,7 +16577,6 @@ const getInputs = async () => {
     .filter((f) => f);
   let githubToken = core.getInput("github-token");
   const defaultGithubToken = core.getInput("default-github-token");
-  let templateBranch = core.getInput("template-branch");
   const prBranch = core.getInput("pr-branch");
   let prBase = core.getInput("pr-base-branch");
   const prTitle = core.getInput("pr-title");
@@ -16594,11 +16595,22 @@ const getInputs = async () => {
   initOctokit(githubToken);
 
   const repo = await getRepo();
-  if (!repo.template_repository) {
-    throw new Error("Could not get the template repository.");
+
+  if (!template) {
+    if (!repo.template_repository) {
+      throw new Error("Could not get the template repository");
+    }
+    template = repo.template_repository.full_name;
+  }
+  if (!templateBranch) {
+    const [owner, repo] = template.split("/");
+    const templateRepo = await getRepo(owner, repo);
+    templateBranch = templateRepo.default_branch;
   }
   if (!fromName) {
-    fromName = repo.template_repository.name;
+    const [owner, repo] = template.split("/");
+    const templateRepo = await getRepo(owner, repo);
+    fromName = templateRepo.name;
   }
   if (!toName) {
     toName = repo.name;
@@ -16607,28 +16619,20 @@ const getInputs = async () => {
     prBase = repo.default_branch;
   }
 
-  const templateRepo = await getRepo(repo.template_repository.owner.login, repo.template_repository.name);
-  if (!templateBranch) {
-    templateBranch = templateRepo.default_branch;
-  }
-
   const ret = {
+    template,
+    templateBranch,
     rename,
     fromName,
     toName,
     ignorePaths,
     githubToken,
-    templateBranch,
     prBranch,
     prBase,
     prTitle,
     prLabels,
     templateSyncFile,
     dryRun,
-    templateRepo: {
-      owner: templateRepo.owner.login,
-      name: templateRepo.name,
-    },
   };
   logJson("inputs", ret);
   return ret;
@@ -16689,7 +16693,7 @@ async function sync(inputs) {
   // Checkout template repository branch
   const remote = "template";
   const workingBranch = `${remote}/${inputs.templateBranch}`;
-  fetchRemote(inputs.templateRepo.owner, inputs.templateRepo.name, remote);
+  fetchRemote(inputs.template, remote);
   createBranch(workingBranch, workingBranch);
 
   // Get the latest commit of the template repository

@@ -43,7 +43,7 @@ async function sync(inputs) {
   // Checkout template repository branch
   const remote = "template";
   const workingBranch = `${remote}/${inputs.templateBranch}`;
-  fetchRemote(inputs.templateRepo.owner, inputs.templateRepo.name, remote);
+  fetchRemote(inputs.template, remote);
   createBranch(workingBranch, workingBranch);
 
   // Get the latest commit of the template repository

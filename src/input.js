@@ -3,6 +3,8 @@ const { initOctokit, getRepo } = require("./github");
 const { logJson } = require("./util");
 
 const getInputs = async () => {
+  let template = core.getInput("template");
+  let templateBranch = core.getInput("template-branch");
   const rename = core.getInput("rename") === "true";
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
@@ -12,7 +14,6 @@ const getInputs = async () => {
     .filter((f) => f);
   let githubToken = core.getInput("github-token");
   const defaultGithubToken = core.getInput("default-github-token");
-  let templateBranch = core.getInput("template-branch");
   const prBranch = core.getInput("pr-branch");
   let prBase = core.getInput("pr-base-branch");
   const prTitle = core.getInput("pr-title");
@@ -31,11 +32,22 @@ const getInputs = async () => {
   initOctokit(githubToken);
 
   const repo = await getRepo();
-  if (!repo.template_repository) {
-    throw new Error("Could not get the template repository.");
+
+  if (!template) {
+    if (!repo.template_repository) {
+      throw new Error("Could not get the template repository");
+    }
+    template = repo.template_repository.full_name;
+  }
+  if (!templateBranch) {
+    const [owner, repo] = template.split("/");
+    const templateRepo = await getRepo(owner, repo);
+    templateBranch = templateRepo.default_branch;
   }
   if (!fromName) {
-    fromName = repo.template_repository.name;
+    const [owner, repo] = template.split("/");
+    const templateRepo = await getRepo(owner, repo);
+    fromName = templateRepo.name;
   }
   if (!toName) {
     toName = repo.name;
@@ -44,28 +56,20 @@ const getInputs = async () => {
     prBase = repo.default_branch;
   }
 
-  const templateRepo = await getRepo(repo.template_repository.owner.login, repo.template_repository.name);
-  if (!templateBranch) {
-    templateBranch = templateRepo.default_branch;
-  }
-
   const ret = {
+    template,
+    templateBranch,
     rename,
     fromName,
     toName,
     ignorePaths,
     githubToken,
-    templateBranch,
     prBranch,
     prBase,
     prTitle,
     prLabels,
     templateSyncFile,
     dryRun,
-    templateRepo: {
-      owner: templateRepo.owner.login,
-      name: templateRepo.name,
-    },
   };
   logJson("inputs", ret);
   return ret;

@@ -3,8 +3,8 @@ const { exec } = require("./exec");
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function fetchRemote(owner, name, remote) {
-  exec("git", ["remote", "add", remote, `https://github.com/${owner}/${name}`]);
+function fetchRemote(fullName, remote) {
+  exec("git", ["remote", "add", remote, `https://github.com/${fullName}`]);
   exec("git", ["fetch", "--all"]);
 }
 
@@ -115,5 +115,5 @@ module.exports = {
   commit,
   push,
   reset,
-  getDiffCommits
+  getDiffCommits,
 };

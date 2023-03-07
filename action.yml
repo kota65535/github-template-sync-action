@@ -4,6 +4,8 @@ branding:
   icon: "copy"
   color: "white"
 inputs:
+  template:
+    description: "Template repository name with <owner/name> format"
   rename:
     description: "Rename or not"
     default: "false"

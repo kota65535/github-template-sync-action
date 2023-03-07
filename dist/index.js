@@ -16661,6 +16661,8 @@ async function main() {
 }
 
 async function sync(inputs) {
+  reset();
+
   // Get the last sync commit of the template repository
   const lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
 

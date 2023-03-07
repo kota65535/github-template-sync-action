@@ -3,16 +3,18 @@ const { exec } = require("./exec");
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutRemote(owner, name, remote, branch) {
-  exec("git", ["remote", "add", "template", `https://github.com/${owner}/${name}`]);
+function fetchRemote(owner, name, remote) {
+  exec("git", ["remote", "add", remote, `https://github.com/${owner}/${name}`]);
   exec("git", ["fetch", "--all"]);
-  exec("git", ["checkout", "-b", `template/${branch}`, `template/${branch}`]);
 }
 
-function merge(prBranch, prBase, templateBranch) {
-  exec("git", ["checkout", "-b", prBranch, prBase]);
+function createBranch(branch, base) {
+  exec("git", ["checkout", "-b", branch, base]);
+}
+
+function merge(branch) {
   try {
-    exec("git", ["merge", `template/${templateBranch}`, "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
+    exec("git", ["merge", branch, "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
     // no-op
   }
@@ -29,7 +31,7 @@ function listFiles() {
   return stdout.split("\n");
 }
 
-function getCurrentHash() {
+function getLatestCommit() {
   const { stdout } = exec("git", ["rev-parse", "HEAD"]);
   return stdout;
 }
@@ -66,12 +68,16 @@ function setGitCredentials(token) {
 
 function commit(files, message) {
   setUserAsBot();
-  for (const f of files) {
-    try {
-      exec("git", ["add", f]);
-    } catch (e) {
-      // do nothing
+  if (files) {
+    for (const f of files) {
+      try {
+        exec("git", ["add", f]);
+      } catch (e) {
+        // do nothing
+      }
     }
+  } else {
+    exec("git", ["add", "."]);
   }
   try {
     exec("git", ["diff-index", "--quiet", "HEAD"]);
@@ -87,12 +93,13 @@ function push() {
 }
 
 module.exports = {
-  checkoutRemote,
+  fetchRemote,
+  createBranch,
   merge,
   restore,
   listFiles,
   listDiffFiles,
-  getCurrentHash,
+  getLatestCommit,
   getGitCredentials,
   setGitCredentials,
   commit,

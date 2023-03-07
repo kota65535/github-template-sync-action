@@ -11,8 +11,10 @@ const {
   merge,
   commit,
   push,
-  getCurrentHash,
-  checkoutRemote,
+  getCurrentHash: getCurrentCommit,
+  fetchRemote,
+  createBranch,
+  getLatestCommit,
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
@@ -31,29 +33,47 @@ async function main() {
 }
 
 async function sync(inputs) {
-  // Checkout template repository
-  checkoutRemote(inputs.templateRepo.owner, inputs.templateRepo.name, "template", inputs.templateBranch);
+  // Get the last sync commit of the template repository
+  const lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
+
+  // Checkout template repository branch
+  const remote = "template";
+  const workingBranch = `${remote}/${inputs.templateBranch}`;
+  fetchRemote(inputs.templateRepo.owner, inputs.templateRepo.name, remote);
+  createBranch(workingBranch, workingBranch);
+
+  const templateBranchLatestCommit = getLatestCommit();
 
   // Get changed files from the last synchronized commit to HEAD
-  let files = getChangedFiles(inputs.templateSyncFile);
-  core.info(`changed files: ${files.length}`);
+  let files;
+  if (lastSyncCommit) {
+    files = listDiffFiles(lastSyncCommit);
+  } else {
+    files = listFiles();
+  }
 
-  // Exclude files to be ignored
-  files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`changed files with ignored: ${files.length}`);
-
-  // Add .templatesync file
-  files.push(inputs.templateSyncFile);
-
-  // Replace/Rename
+  // Replace/Rename if needed
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
   }
 
+  core.info(`changed files: ${files.length}`);
+
+  // Checkout PR branch
+  createBranch(inputs.prBranch, inputs.prBase);
+
+  // Exclude files to be ignored
+  files = ignoreFiles(files, inputs.ignorePaths);
+  core.info(`changed files with ignored: ${files.length}`);
+
   // Merge
-  merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
+  merge(workingBranch);
   commit(files, "merged template");
+
+  // Update templatesync file
+  fs.writeFileSync(inputs.templateSyncFile, templateBranchLatestCommit, "utf8");
+  commit(files, "updated template sync file");
 
   // Push
   push();
@@ -70,16 +90,12 @@ function ignoreFiles(files, ignorePaths) {
   }
 }
 
-function getChangedFiles(syncCommitFile) {
-  let files;
+function getLastTemplateSyncCommit(syncCommitFile) {
   if (fs.existsSync(syncCommitFile)) {
-    const lastSyncCommit = fs.readFileSync(syncCommitFile, "utf8");
-    files = listDiffFiles(lastSyncCommit);
+    return fs.readFileSync(syncCommitFile, "utf8");
   } else {
-    files = listFiles();
+    return null;
   }
-  fs.writeFileSync(syncCommitFile, getCurrentHash(), "utf8");
-  return files;
 }
 
 function rename(files, fromName, toName) {

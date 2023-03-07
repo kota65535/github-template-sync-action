@@ -16273,16 +16273,18 @@ const { exec } = __nccwpck_require__(3264);
 
 const extraHeaderKey = `http.https://github.com/.extraHeader`;
 
-function checkoutRemote(owner, name, remote, branch) {
-  exec("git", ["remote", "add", "template", `https://github.com/${owner}/${name}`]);
+function fetchRemote(owner, name, remote) {
+  exec("git", ["remote", "add", remote, `https://github.com/${owner}/${name}`]);
   exec("git", ["fetch", "--all"]);
-  exec("git", ["checkout", "-b", `template/${branch}`, `template/${branch}`]);
 }
 
-function merge(prBranch, prBase, templateBranch) {
-  exec("git", ["checkout", "-b", prBranch, prBase]);
+function createBranch(branch, base) {
+  exec("git", ["checkout", "-b", branch, base]);
+}
+
+function merge(branch) {
   try {
-    exec("git", ["merge", `template/${templateBranch}`, "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
+    exec("git", ["merge", branch, "-X", "theirs", "--allow-unrelated-histories", "--no-commit"]);
   } catch (e) {
     // no-op
   }
@@ -16299,7 +16301,7 @@ function listFiles() {
   return stdout.split("\n");
 }
 
-function getCurrentHash() {
+function getLatestCommit() {
   const { stdout } = exec("git", ["rev-parse", "HEAD"]);
   return stdout;
 }
@@ -16336,12 +16338,16 @@ function setGitCredentials(token) {
 
 function commit(files, message) {
   setUserAsBot();
-  for (const f of files) {
-    try {
-      exec("git", ["add", f]);
-    } catch (e) {
-      // do nothing
+  if (files) {
+    for (const f of files) {
+      try {
+        exec("git", ["add", f]);
+      } catch (e) {
+        // do nothing
+      }
     }
+  } else {
+    exec("git", ["add", "."]);
   }
   try {
     exec("git", ["diff-index", "--quiet", "HEAD"]);
@@ -16357,12 +16363,13 @@ function push() {
 }
 
 module.exports = {
-  checkoutRemote,
+  fetchRemote,
+  createBranch,
   merge,
   restore,
   listFiles,
   listDiffFiles,
-  getCurrentHash,
+  getLatestCommit,
   getGitCredentials,
   setGitCredentials,
   commit,
@@ -16534,8 +16541,10 @@ const {
   merge,
   commit,
   push,
-  getCurrentHash,
-  checkoutRemote,
+  getCurrentHash: getCurrentCommit,
+  fetchRemote,
+  createBranch,
+  getLatestCommit,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
@@ -16554,29 +16563,47 @@ async function main() {
 }
 
 async function sync(inputs) {
-  // Checkout template repository
-  checkoutRemote(inputs.templateRepo.owner, inputs.templateRepo.name, "template", inputs.templateBranch);
+  // Get the last sync commit of the template repository
+  const lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
+
+  // Checkout template repository branch
+  const remote = "template";
+  const workingBranch = `${remote}/${inputs.templateBranch}`;
+  fetchRemote(inputs.templateRepo.owner, inputs.templateRepo.name, remote);
+  createBranch(workingBranch, workingBranch);
+
+  const templateBranchLatestCommit = getLatestCommit();
 
   // Get changed files from the last synchronized commit to HEAD
-  let files = getChangedFiles(inputs.templateSyncFile);
-  core.info(`changed files: ${files.length}`);
+  let files;
+  if (lastSyncCommit) {
+    files = listDiffFiles(lastSyncCommit);
+  } else {
+    files = listFiles();
+  }
 
-  // Exclude files to be ignored
-  files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`changed files with ignored: ${files.length}`);
-
-  // Add .templatesync file
-  files.push(inputs.templateSyncFile);
-
-  // Replace/Rename
+  // Replace/Rename if needed
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
     commit(files, "renamed");
   }
 
+  core.info(`changed files: ${files.length}`);
+
+  // Checkout PR branch
+  createBranch(inputs.prBranch, inputs.prBase);
+
+  // Exclude files to be ignored
+  files = ignoreFiles(files, inputs.ignorePaths);
+  core.info(`changed files with ignored: ${files.length}`);
+
   // Merge
-  merge(inputs.prBranch, inputs.prBase, inputs.templateBranch);
+  merge(workingBranch);
   commit(files, "merged template");
+
+  // Update templatesync file
+  fs.writeFileSync(inputs.templateSyncFile, templateBranchLatestCommit, "utf8");
+  commit(files, "updated template sync file");
 
   // Push
   push();
@@ -16593,16 +16620,12 @@ function ignoreFiles(files, ignorePaths) {
   }
 }
 
-function getChangedFiles(syncCommitFile) {
-  let files;
+function getLastTemplateSyncCommit(syncCommitFile) {
   if (fs.existsSync(syncCommitFile)) {
-    const lastSyncCommit = fs.readFileSync(syncCommitFile, "utf8");
-    files = listDiffFiles(lastSyncCommit);
+    return fs.readFileSync(syncCommitFile, "utf8");
   } else {
-    files = listFiles();
+    return null;
   }
-  fs.writeFileSync(syncCommitFile, getCurrentHash(), "utf8");
-  return files;
 }
 
 function rename(files, fromName, toName) {

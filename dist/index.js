@@ -16544,7 +16544,7 @@ module.exports = {
 
 const core = __nccwpck_require__(2186);
 const { initOctokit, getRepo } = __nccwpck_require__(8396);
-const { toJson } = __nccwpck_require__(6254);
+const { logJson } = __nccwpck_require__(6254);
 
 const getInputs = async () => {
   const rename = core.getInput("rename") === "true";
@@ -16611,7 +16611,7 @@ const getInputs = async () => {
       name: templateRepo.name,
     },
   };
-  core.info(toJson(ret));
+  logJson("inputs", ret);
   return ret;
 };
 
@@ -16645,7 +16645,7 @@ const {
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
-const { toJson } = __nccwpck_require__(6254);
+const { logJson } = __nccwpck_require__(6254);
 
 async function main() {
   const inputs = await getInputs();
@@ -16679,14 +16679,10 @@ async function sync(inputs) {
   let files;
   if (lastSyncCommit) {
     files = listDiffFiles(lastSyncCommit);
-    core.startGroup(`${files.length} changed files from the last sync ${lastSyncCommit}`);
-    core.info(toJson(files));
-    core.endGroup();
+    logJson(`${files.length} changed files from the last sync ${lastSyncCommit}`, files);
   } else {
     files = listFiles();
-    core.startGroup(`${files.length} changed files`);
-    console.log(files);
-    core.endGroup();
+    logJson(`${files.length} changed files`, files);
   }
 
   // Replace/Rename if needed
@@ -16702,12 +16698,8 @@ async function sync(inputs) {
   // Exclude files to be ignored
   let ignored;
   [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
-  core.startGroup(`ignored ${ignored.length} files`);
-  console.log(ignored);
-  core.endGroup();
-  core.startGroup(`merging ${files.length} files`);
-  console.log(files);
-  core.endGroup();
+  logJson(`ignored ${ignored.length} files`, ignored);
+  logJson(`merging ${ignored.length} files`, files);
 
   // Merge
   merge(workingBranch);
@@ -16743,7 +16735,7 @@ function getLastTemplateSyncCommit(syncCommitFile) {
 }
 
 function rename(files, fromName, toName) {
-  core.info(`replacing ${files.length} files: ${toJson(files)}`);
+  logJson(`replacing ${files.length} files`, files);
 
   const conversions = createConversions(fromName, toName);
 
@@ -16756,7 +16748,7 @@ function rename(files, fromName, toName) {
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  core.info(`renaming ${filesAndDirs.length} files and directories: ${toJson(filesAndDirs)}`);
+  logJson(`renaming ${filesAndDirs.length} files and directories`, filesAndDirs);
 
   // Rename files and directories
   const cwd = process.cwd();
@@ -16819,14 +16811,23 @@ module.exports = {
 /***/ }),
 
 /***/ 6254:
-/***/ ((module) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const core = __nccwpck_require__(2186);
 
 function toJson(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
+function logJson(message, obj) {
+  core.startGroup(message);
+  core.info(toJson(obj));
+  core.endGroup();
+}
+
 module.exports = {
   toJson,
+  logJson,
 };
 
 

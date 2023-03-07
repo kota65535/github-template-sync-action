@@ -18,7 +18,7 @@ const {
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr } = require("./github");
-const { toJson } = require("./util");
+const { logJson } = require("./util");
 
 async function main() {
   const inputs = await getInputs();
@@ -52,14 +52,10 @@ async function sync(inputs) {
   let files;
   if (lastSyncCommit) {
     files = listDiffFiles(lastSyncCommit);
-    core.startGroup(`${files.length} changed files from the last sync ${lastSyncCommit}`);
-    core.info(toJson(files));
-    core.endGroup();
+    logJson(`${files.length} changed files from the last sync ${lastSyncCommit}`, files);
   } else {
     files = listFiles();
-    core.startGroup(`${files.length} changed files`);
-    console.log(files);
-    core.endGroup();
+    logJson(`${files.length} changed files`, files);
   }
 
   // Replace/Rename if needed
@@ -75,12 +71,8 @@ async function sync(inputs) {
   // Exclude files to be ignored
   let ignored;
   [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
-  core.startGroup(`ignored ${ignored.length} files`);
-  console.log(ignored);
-  core.endGroup();
-  core.startGroup(`merging ${files.length} files`);
-  console.log(files);
-  core.endGroup();
+  logJson(`ignored ${ignored.length} files`, ignored);
+  logJson(`merging ${ignored.length} files`, files);
 
   // Merge
   merge(workingBranch);
@@ -116,7 +108,7 @@ function getLastTemplateSyncCommit(syncCommitFile) {
 }
 
 function rename(files, fromName, toName) {
-  core.info(`replacing ${files.length} files: ${toJson(files)}`);
+  logJson(`replacing ${files.length} files`, files);
 
   const conversions = createConversions(fromName, toName);
 
@@ -129,7 +121,7 @@ function rename(files, fromName, toName) {
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  core.info(`renaming ${filesAndDirs.length} files and directories: ${toJson(filesAndDirs)}`);
+  logJson(`renaming ${filesAndDirs.length} files and directories`, filesAndDirs);
 
   // Rename files and directories
   const cwd = process.cwd();

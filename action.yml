@@ -1,11 +1,13 @@
-name: "Template Repository Sync"
-description: ""
+name: "Pull Template Repository"
+description: "Synchronize the upstream template repository change."
 branding:
-  icon: "copy"
+  icon: "refresh-ccw"
   color: "white"
 inputs:
   template:
     description: "Template repository name with <owner/name> format"
+  template-branch:
+    description: "Template repository branch"
   rename:
     description: "Rename or not"
     default: "false"
@@ -13,15 +15,13 @@ inputs:
     description: "Original project name from the template repository"
   to-name:
     description: "New project name of the repository created"
-  ignore-paths:
+  paths-ignore:
     description: "Paths to ignore"
   github-token:
     description: "GitHub token"
   default-github-token:
     description: "Default gitHub token"
     default: ${{ github.token }}
-  template-branch:
-    description: "Template repository branch"
   pr-branch:
     description: "PR head branch"
     default: "template-sync"

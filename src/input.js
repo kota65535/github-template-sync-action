@@ -9,7 +9,7 @@ const getInputs = async () => {
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
   const ignorePaths = core
-    .getInput("ignore-paths")
+    .getInput("paths-ignore")
     .split("\n")
     .filter((f) => f);
   let githubToken = core.getInput("github-token");

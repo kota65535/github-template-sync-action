@@ -85,6 +85,11 @@ async function sync(inputs) {
   commit([inputs.templateSyncFile], "updated template sync file");
   reset();
 
+  if (inputs.dryRun) {
+    core.info("Skip creating PR because dry-run is true");
+    return;
+  }
+
   // Push
   push();
 

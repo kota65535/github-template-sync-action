@@ -16572,7 +16572,7 @@ const getInputs = async () => {
   let fromName = core.getInput("from-name");
   let toName = core.getInput("to-name");
   const ignorePaths = core
-    .getInput("ignore-paths")
+    .getInput("paths-ignore")
     .split("\n")
     .filter((f) => f);
   let githubToken = core.getInput("github-token");
@@ -16734,6 +16734,11 @@ async function sync(inputs) {
   fs.writeFileSync(inputs.templateSyncFile, latestCommit, "utf8");
   commit([inputs.templateSyncFile], "updated template sync file");
   reset();
+
+  if (inputs.dryRun) {
+    core.info("Skip creating PR because dry-run is true");
+    return;
+  }
 
   // Push
   push();

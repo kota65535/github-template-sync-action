@@ -16589,6 +16589,8 @@ async function sync(inputs) {
     files = listFiles();
   }
 
+  core.info(`${files.length} changed files in template: ${toJson(files)}`);
+
   // Replace/Rename if needed
   if (inputs.rename) {
     files = rename(files, inputs.fromName, inputs.toName);
@@ -16596,14 +16598,12 @@ async function sync(inputs) {
     reset();
   }
 
-  core.info(`${files.length} changed files: ${toJson(files)}`);
-
   // Checkout PR branch
   createBranch(inputs.prBranch, inputs.prBase);
 
   // Exclude files to be ignored
   files = ignoreFiles(files, inputs.ignorePaths);
-  core.info(`${files.length} changed files after ignoring: ${toJson(files)}`);
+  core.info(`merging ${files.length} files: ${toJson(files)}`);
 
   // Merge
   merge(workingBranch);

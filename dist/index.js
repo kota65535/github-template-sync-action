@@ -16497,18 +16497,29 @@ const getRepo = async (owner, repo) => {
   return res.data;
 };
 
+const addLabels = async (prNum, labels) => {
+  const res = await octokit.rest.issues.addLabels({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    issue_number: prNum,
+    labels,
+  });
+  return res.data;
+};
+
 const createPr = async (title, head, base) => {
-  return await octokit.rest.pulls.create({
+  const res = await octokit.rest.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
     title,
     head,
     base,
   });
+  return res.data;
 };
 
 const updatePr = async (prNum, title, head, base) => {
-  return await octokit.rest.pulls.update({
+  const res = await octokit.rest.pulls.update({
     owner: context.repo.owner,
     repo: context.repo.repo,
     pull_number: prNum,
@@ -16516,6 +16527,7 @@ const updatePr = async (prNum, title, head, base) => {
     head,
     base,
   });
+  return res.data;
 };
 
 const listPrs = async (head, base) => {
@@ -16534,6 +16546,7 @@ module.exports = {
   createPr,
   updatePr,
   listPrs,
+  addLabels,
 };
 
 
@@ -16644,7 +16657,7 @@ const {
   reset,
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
-const { createPr, listPrs, updatePr } = __nccwpck_require__(8396);
+const { createPr, listPrs, updatePr, addLabels } = __nccwpck_require__(8396);
 const { logJson } = __nccwpck_require__(6254);
 
 async function main() {
@@ -16699,7 +16712,7 @@ async function sync(inputs) {
   let ignored;
   [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
   logJson(`ignored ${ignored.length} files`, ignored);
-  logJson(`merging ${ignored.length} files`, files);
+  logJson(`merging ${files.length} files`, files);
 
   // Merge
   merge(workingBranch);
@@ -16793,14 +16806,17 @@ function getDirsFromFiles(files) {
 
 async function createOrUpdatePr(inputs) {
   const prs = await listPrs(inputs.prBranch, inputs.prBase);
+  let prNum;
   if (prs.length) {
-    const prNum = prs[0].number;
+    prNum = prs[0].number;
     core.info(`updating existing PR #${prNum}`);
     await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase);
   } else {
     core.info("creating PR");
-    await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
+    const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
+    prNum = res.number;
   }
+  await addLabels(prNum, inputs.prLabels);
 }
 
 module.exports = {

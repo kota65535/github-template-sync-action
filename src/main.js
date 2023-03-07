@@ -17,7 +17,7 @@ const {
   reset,
 } = require("./git");
 const { getInputs } = require("./input");
-const { createPr, listPrs, updatePr } = require("./github");
+const { createPr, listPrs, updatePr, addLabels } = require("./github");
 const { logJson } = require("./util");
 
 async function main() {
@@ -72,7 +72,7 @@ async function sync(inputs) {
   let ignored;
   [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
   logJson(`ignored ${ignored.length} files`, ignored);
-  logJson(`merging ${ignored.length} files`, files);
+  logJson(`merging ${files.length} files`, files);
 
   // Merge
   merge(workingBranch);
@@ -166,14 +166,17 @@ function getDirsFromFiles(files) {
 
 async function createOrUpdatePr(inputs) {
   const prs = await listPrs(inputs.prBranch, inputs.prBase);
+  let prNum;
   if (prs.length) {
-    const prNum = prs[0].number;
+    prNum = prs[0].number;
     core.info(`updating existing PR #${prNum}`);
     await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase);
   } else {
     core.info("creating PR");
-    await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
+    const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
+    prNum = res.number;
   }
+  await addLabels(prNum, inputs.prLabels);
 }
 
 module.exports = {

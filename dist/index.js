@@ -16540,7 +16540,7 @@ const listPrs = async (head, base) => {
   const res = await octokit.rest.pulls.list({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    head,
+    head: `${context.repo.owner}:${head}`,
     base,
   });
   return res.data;

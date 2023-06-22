@@ -16406,10 +16406,7 @@ function listDiffFilesWithStatus(fromCommit) {
   const ret = [];
   for (const s of stdout.split("\n").filter((s) => s)) {
     const [status, name] = s.split("\t");
-    ret.push({
-      status,
-      name,
-    });
+    ret.push({ status, name });
   }
   return ret;
 }
@@ -16816,9 +16813,7 @@ function renameFiles(files, fromName, toName) {
     const toDir = convert(conversions, fromDir);
     if (fromBase !== toBase) {
       process.chdir(toDir);
-      if (fs.existsSync(fromBase)) {
-        fs.renameSync(fromBase, toBase);
-      }
+      fs.renameSync(fromBase, toBase);
       process.chdir(cwd);
     }
   }

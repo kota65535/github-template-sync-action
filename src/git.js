@@ -41,6 +41,16 @@ function listDiffFiles(fromCommit) {
   return stdout.split("\n").filter((s) => s);
 }
 
+function listDiffFilesWithStatus(fromCommit) {
+  const { stdout } = exec("git", ["diff", "--name-status", "--no-renames", fromCommit, "HEAD"]);
+  const ret = [];
+  for (const s of stdout.split("\n").filter((s) => s)) {
+    const [status, name] = s.split("\t");
+    ret.push({ status, name });
+  }
+  return ret;
+}
+
 function setUserAsBot() {
   exec("git", ["config", "user.email", "github-actions[bot]@users.noreply.github.com"]);
   exec("git", ["config", "user.name", "github-actions[bot]"]);
@@ -109,6 +119,7 @@ module.exports = {
   restore,
   listFiles,
   listDiffFiles,
+  listDiffFilesWithStatus,
   getLatestCommit,
   getGitCredentials,
   setGitCredentials,

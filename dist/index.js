@@ -16401,6 +16401,19 @@ function listDiffFiles(fromCommit) {
   return stdout.split("\n").filter((s) => s);
 }
 
+function listDiffFilesWithStatus(fromCommit) {
+  const { stdout } = exec("git", ["diff", "--name-status", "--no-renames", fromCommit, "HEAD"]);
+  const ret = [];
+  for (const s of stdout.split("\n").filter((s) => s)) {
+    const [status, name] = s.split("\t");
+    ret.push({
+      status,
+      name,
+    });
+  }
+  return ret;
+}
+
 function setUserAsBot() {
   exec("git", ["config", "user.email", "github-actions[bot]@users.noreply.github.com"]);
   exec("git", ["config", "user.name", "github-actions[bot]"]);
@@ -16469,6 +16482,7 @@ module.exports = {
   restore,
   listFiles,
   listDiffFiles,
+  listDiffFilesWithStatus,
   getLatestCommit,
   getGitCredentials,
   setGitCredentials,
@@ -16657,7 +16671,7 @@ const {
   getGitCredentials,
   setGitCredentials,
   listFiles,
-  listDiffFiles,
+  listDiffFilesWithStatus,
   merge,
   commit,
   push,
@@ -16689,6 +16703,7 @@ async function sync(inputs) {
 
   // Get the last sync commit of the template repository
   const lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
+  logJson(lastSyncCommit ? `last sync: ${lastSyncCommit}` : "first sync");
 
   // Checkout template repository branch
   const remote = "template";
@@ -16700,19 +16715,26 @@ async function sync(inputs) {
   const latestCommit = getLatestCommit();
 
   // Get changed files from the last synchronized commit to HEAD
-  let files;
+  let changedFiles, deletedFiles;
   if (lastSyncCommit) {
-    files = listDiffFiles(lastSyncCommit);
-    logJson(`${files.length} changed files from the last sync ${lastSyncCommit}`, files);
+    const filesWithStatus = listDiffFilesWithStatus(lastSyncCommit);
+    changedFiles = filesWithStatus.filter((f) => f.status !== "D").map((f) => f.name);
+    deletedFiles = filesWithStatus.filter((f) => f.status === "D").map((f) => f.name);
+    logJson(`${changedFiles.length} files changed`, changedFiles);
+    logJson(`${deletedFiles.length} files deleted`, deletedFiles);
   } else {
-    files = listFiles();
-    logJson(`${files.length} changed files`, files);
+    changedFiles = listFiles();
+    deletedFiles = [];
+    logJson(`${changedFiles.length} files changed`, changedFiles);
   }
 
   // Replace/Rename if needed
   if (inputs.rename) {
-    files = rename(files, inputs.fromName, inputs.toName);
-    commit(files, "renamed");
+    replaceFiles(changedFiles, inputs.fromName, inputs.toName);
+    changedFiles = renameFiles(changedFiles, inputs.fromName, inputs.toName);
+    deletedFiles = renameFiles(deletedFiles, inputs.fromName, inputs.toName);
+    logJson(`replace/renamed ${changedFiles.length + deletedFiles.length} files`, changedFiles.concat(deletedFiles));
+    commit(changedFiles, "renamed");
     reset();
   }
 
@@ -16720,14 +16742,21 @@ async function sync(inputs) {
   createBranch(inputs.prBranch, inputs.prBase);
 
   // Exclude files to be ignored
-  let ignored;
-  [files, ignored] = ignoreFiles(files, inputs.ignorePaths);
-  logJson(`ignored ${ignored.length} files`, ignored);
-  logJson(`merging ${files.length} files`, files);
+  let changeIgnored, deleteIgnored;
+  [changedFiles, changeIgnored] = ignoreFiles(changedFiles, inputs.ignorePaths);
+  [deletedFiles, deleteIgnored] = ignoreFiles(deletedFiles, inputs.ignorePaths);
+  logJson(`ignored ${changeIgnored.length + deleteIgnored.length} files`, changeIgnored.concat(deleteIgnored));
 
   // Merge
+  logJson(`merging ${changedFiles.length} files`, changedFiles);
   merge(workingBranch);
-  commit(files, "merged template");
+  commit(changedFiles, "changed files");
+  reset();
+
+  // Delete files which has been deleted in the template repository
+  logJson(`deleting ${deletedFiles.length} files`, deletedFiles);
+  deletedFiles.forEach((f) => fs.rmSync(f));
+  commit(deletedFiles, "deleted files");
   reset();
 
   // Update templatesync file
@@ -16749,14 +16778,6 @@ async function sync(inputs) {
   }
 }
 
-function ignoreFiles(files, ignorePaths) {
-  if (ignorePaths.length) {
-    return [micromatch.not(files, ignorePaths), micromatch(files, ignorePaths)];
-  } else {
-    return [files, []];
-  }
-}
-
 function getLastTemplateSyncCommit(syncCommitFile) {
   if (fs.existsSync(syncCommitFile)) {
     return fs.readFileSync(syncCommitFile, "utf8").trim();
@@ -16765,39 +16786,52 @@ function getLastTemplateSyncCommit(syncCommitFile) {
   }
 }
 
-function rename(files, fromName, toName) {
-  logJson(`replacing ${files.length} files`, files);
-
+function replaceFiles(files, fromName, toName) {
   const conversions = createConversions(fromName, toName);
+  const existingFiles = files.filter((f) => fs.existsSync(f));
 
   // Replace file contents
-  for (const f of files) {
+  for (const f of existingFiles) {
     const s = fs.readFileSync(f, "utf8");
     const converted = convert(conversions, s);
     if (s !== converted) {
       fs.writeFileSync(f, converted, "utf8");
     }
   }
+}
+
+function renameFiles(files, fromName, toName) {
+  const conversions = createConversions(fromName, toName);
 
   // Get directories where the files are located
   const filesAndDirs = getDirsFromFiles(files);
-  logJson(`renaming ${filesAndDirs.length} files and directories`, filesAndDirs);
+  const existingFilesAndDirs = filesAndDirs.filter((f) => fs.existsSync(f));
 
   // Rename files and directories
   const cwd = process.cwd();
-  for (const f of filesAndDirs) {
+  for (const f of existingFilesAndDirs) {
     const fromBase = path.basename(f);
     const fromDir = path.dirname(f);
     const toBase = convert(conversions, fromBase);
     const toDir = convert(conversions, fromDir);
     if (fromBase !== toBase) {
       process.chdir(toDir);
-      fs.renameSync(fromBase, toBase);
+      if (fs.existsSync(fromBase)) {
+        fs.renameSync(fromBase, toBase);
+      }
       process.chdir(cwd);
     }
   }
 
   return files.map((f) => convert(conversions, f));
+}
+
+function ignoreFiles(files, ignorePaths) {
+  if (ignorePaths.length) {
+    return [micromatch.not(files, ignorePaths), micromatch(files, ignorePaths)];
+  } else {
+    return [files, []];
+  }
 }
 
 function getDirsFromFiles(files) {

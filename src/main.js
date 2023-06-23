@@ -19,7 +19,7 @@ const {
 } = require("./git");
 const { getInputs } = require("./input");
 const { createPr, listPrs, updatePr, addLabels } = require("./github");
-const { logJson } = require("./util");
+const { logJson, ensurePrefix } = require("./util");
 
 async function main() {
   const inputs = await getInputs();
@@ -77,8 +77,10 @@ async function sync(inputs) {
     reset();
   }
 
+  const prBaseWithRemote = ensurePrefix("origin/", inputs.prBase);
+
   // Checkout PR branch
-  createBranch(inputs.prBranch, inputs.prBase);
+  createBranch(inputs.prBranch, prBaseWithRemote);
 
   // Exclude files to be ignored
   let changeIgnored, deleteIgnored;
@@ -112,7 +114,7 @@ async function sync(inputs) {
   push();
 
   // Create PR if there is any commit
-  if (getDiffCommits(inputs.prBase, inputs.prBranch).length > 0) {
+  if (getDiffCommits(prBaseWithRemote, inputs.prBranch).length > 0) {
     await createOrUpdatePr(inputs);
   }
 }

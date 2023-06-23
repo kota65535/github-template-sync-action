@@ -16674,7 +16674,7 @@ const {
 } = __nccwpck_require__(109);
 const { getInputs } = __nccwpck_require__(6);
 const { createPr, listPrs, updatePr, addLabels } = __nccwpck_require__(8396);
-const { logJson } = __nccwpck_require__(6254);
+const { logJson, ensurePrefix } = __nccwpck_require__(6254);
 
 async function main() {
   const inputs = await getInputs();
@@ -16732,8 +16732,10 @@ async function sync(inputs) {
     reset();
   }
 
+  const prBaseWithRemote = ensurePrefix("origin/", inputs.prBase);
+
   // Checkout PR branch
-  createBranch(inputs.prBranch, inputs.prBase);
+  createBranch(inputs.prBranch, prBaseWithRemote);
 
   // Exclude files to be ignored
   let changeIgnored, deleteIgnored;
@@ -16767,7 +16769,7 @@ async function sync(inputs) {
   push();
 
   // Create PR if there is any commit
-  if (getDiffCommits(inputs.prBase, inputs.prBranch).length > 0) {
+  if (getDiffCommits(prBaseWithRemote, inputs.prBranch).length > 0) {
     await createOrUpdatePr(inputs);
   }
 }
@@ -16889,9 +16891,14 @@ function logJson(message, obj) {
   core.endGroup();
 }
 
+function ensurePrefix(prefix, str) {
+  return str.startsWith(prefix) ? str : `${prefix}${str}`;
+}
+
 module.exports = {
   toJson,
   logJson,
+  ensurePrefix
 };
 
 

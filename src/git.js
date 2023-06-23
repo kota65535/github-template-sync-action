@@ -31,6 +31,11 @@ function getLatestCommit() {
   return stdout;
 }
 
+function getLatestCommitBefore(datetime) {
+  const { stdout } = exec("git", ["log", "-1", "--before", datetime, "--pretty=%H"]);
+  return stdout;
+}
+
 function listDiffFiles(fromCommit) {
   const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
   return stdout.split("\n").filter((s) => s);
@@ -115,6 +120,7 @@ module.exports = {
   listDiffFiles,
   listDiffFilesWithStatus,
   getLatestCommit,
+  getLatestCommitBefore,
   getGitCredentials,
   setGitCredentials,
   commit,

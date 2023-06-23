@@ -10,12 +10,12 @@ const {
   getDiffCommits,
   getGitCredentials,
   getLatestCommit,
-  listFiles,
   listDiffFilesWithStatus,
   merge,
   push,
   reset,
   setGitCredentials,
+  getLatestCommitBefore,
 } = require("./git");
 const { addLabels, createPr, listPrs, updatePr } = require("./github");
 const { getInputs } = require("./input");
@@ -38,8 +38,10 @@ async function sync(inputs) {
   reset();
 
   // Get the last sync commit of the template repository
-  const lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
-  logJson(lastSyncCommit ? `last sync: ${lastSyncCommit}` : "first sync");
+  let lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
+  if (lastSyncCommit) {
+    core.info(`last sync: ${lastSyncCommit}`);
+  }
 
   // Checkout template repository branch
   const remote = "template";
@@ -47,22 +49,22 @@ async function sync(inputs) {
   fetchRemote(inputs.template, remote);
   createBranch(workingBranch, workingBranch);
 
+  // If this is the first sync, get the commit of the template repository from which this repository is created
+  if (!lastSyncCommit) {
+    lastSyncCommit = getLatestCommitBefore(inputs.createdAt);
+    core.info(`first sync: ${lastSyncCommit}`);
+  }
+
   // Get the latest commit of the template repository
   const latestCommit = getLatestCommit();
 
   // Get changed files from the last synchronized commit to HEAD
   let changedFiles, deletedFiles;
-  if (lastSyncCommit) {
-    const filesWithStatus = listDiffFilesWithStatus(lastSyncCommit);
-    changedFiles = filesWithStatus.filter((f) => f.status !== "D").map((f) => f.name);
-    deletedFiles = filesWithStatus.filter((f) => f.status === "D").map((f) => f.name);
-    logJson(`${changedFiles.length} files changed`, changedFiles);
-    logJson(`${deletedFiles.length} files deleted`, deletedFiles);
-  } else {
-    changedFiles = listFiles();
-    deletedFiles = [];
-    logJson(`${changedFiles.length} files changed`, changedFiles);
-  }
+  const filesWithStatus = listDiffFilesWithStatus(lastSyncCommit);
+  changedFiles = filesWithStatus.filter((f) => f.status !== "D").map((f) => f.name);
+  deletedFiles = filesWithStatus.filter((f) => f.status === "D").map((f) => f.name);
+  logJson(`${changedFiles.length} files changed`, changedFiles);
+  logJson(`${deletedFiles.length} files deleted`, deletedFiles);
 
   // Replace/Rename if needed
   if (inputs.rename) {

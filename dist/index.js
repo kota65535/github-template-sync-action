@@ -16391,6 +16391,11 @@ function getLatestCommit() {
   return stdout;
 }
 
+function getLatestCommitBefore(datetime) {
+  const { stdout } = exec("git", ["log", "-1", "--before", datetime, "--pretty=%H"]);
+  return stdout;
+}
+
 function listDiffFiles(fromCommit) {
   const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
   return stdout.split("\n").filter((s) => s);
@@ -16475,6 +16480,7 @@ module.exports = {
   listDiffFiles,
   listDiffFilesWithStatus,
   getLatestCommit,
+  getLatestCommitBefore,
   getGitCredentials,
   setGitCredentials,
   commit,
@@ -16623,6 +16629,8 @@ const getInputs = async () => {
   if (!prBase) {
     prBase = repo.default_branch;
   }
+  
+  const createdAt = repo.created_at
 
   const ret = {
     template,
@@ -16638,6 +16646,7 @@ const getInputs = async () => {
     prLabels,
     templateSyncFile,
     dryRun,
+    createdAt,
   };
   logJson("inputs", ret);
   return ret;
@@ -16665,12 +16674,12 @@ const {
   getDiffCommits,
   getGitCredentials,
   getLatestCommit,
-  listFiles,
   listDiffFilesWithStatus,
   merge,
   push,
   reset,
   setGitCredentials,
+  getLatestCommitBefore,
 } = __nccwpck_require__(109);
 const { addLabels, createPr, listPrs, updatePr } = __nccwpck_require__(8396);
 const { getInputs } = __nccwpck_require__(6);
@@ -16693,8 +16702,10 @@ async function sync(inputs) {
   reset();
 
   // Get the last sync commit of the template repository
-  const lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
-  logJson(lastSyncCommit ? `last sync: ${lastSyncCommit}` : "first sync");
+  let lastSyncCommit = getLastTemplateSyncCommit(inputs.templateSyncFile);
+  if (lastSyncCommit) {
+    core.info(`last sync: ${lastSyncCommit}`);
+  }
 
   // Checkout template repository branch
   const remote = "template";
@@ -16702,22 +16713,22 @@ async function sync(inputs) {
   fetchRemote(inputs.template, remote);
   createBranch(workingBranch, workingBranch);
 
+  // If this is the first sync, get the commit of the template repository from which this repository is created
+  if (!lastSyncCommit) {
+    lastSyncCommit = getLatestCommitBefore(inputs.createdAt);
+    core.info(`first sync: ${lastSyncCommit}`);
+  }
+
   // Get the latest commit of the template repository
   const latestCommit = getLatestCommit();
 
   // Get changed files from the last synchronized commit to HEAD
   let changedFiles, deletedFiles;
-  if (lastSyncCommit) {
-    const filesWithStatus = listDiffFilesWithStatus(lastSyncCommit);
-    changedFiles = filesWithStatus.filter((f) => f.status !== "D").map((f) => f.name);
-    deletedFiles = filesWithStatus.filter((f) => f.status === "D").map((f) => f.name);
-    logJson(`${changedFiles.length} files changed`, changedFiles);
-    logJson(`${deletedFiles.length} files deleted`, deletedFiles);
-  } else {
-    changedFiles = listFiles();
-    deletedFiles = [];
-    logJson(`${changedFiles.length} files changed`, changedFiles);
-  }
+  const filesWithStatus = listDiffFilesWithStatus(lastSyncCommit);
+  changedFiles = filesWithStatus.filter((f) => f.status !== "D").map((f) => f.name);
+  deletedFiles = filesWithStatus.filter((f) => f.status === "D").map((f) => f.name);
+  logJson(`${changedFiles.length} files changed`, changedFiles);
+  logJson(`${deletedFiles.length} files deleted`, deletedFiles);
 
   // Replace/Rename if needed
   if (inputs.rename) {

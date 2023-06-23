@@ -55,6 +55,8 @@ const getInputs = async () => {
   if (!prBase) {
     prBase = repo.default_branch;
   }
+  
+  const createdAt = repo.created_at
 
   const ret = {
     template,
@@ -70,6 +72,7 @@ const getInputs = async () => {
     prLabels,
     templateSyncFile,
     dryRun,
+    createdAt,
   };
   logJson("inputs", ret);
   return ret;

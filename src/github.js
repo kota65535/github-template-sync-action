@@ -1,5 +1,5 @@
-const { getOctokit } = require("@actions/github");
 const { context } = require("@actions/github");
+const { getOctokit } = require("@actions/github");
 
 let octokit;
 
@@ -8,8 +8,8 @@ const initOctokit = (token) => {
 };
 
 const getRepo = async (owner, repo) => {
-  owner ||= context.repo.owner;
-  repo ||= context.repo.repo;
+  owner ??= context.repo.owner;
+  repo ??= context.repo.repo;
   const res = await octokit.rest.repos.get({
     owner,
     repo,

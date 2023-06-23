@@ -1,5 +1,5 @@
 const core = require("@actions/core");
-const { initOctokit, getRepo } = require("./github");
+const { getRepo, initOctokit } = require("./github");
 const { logJson } = require("./util");
 
 const getInputs = async () => {

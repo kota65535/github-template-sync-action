@@ -16338,8 +16338,8 @@ module.exports = {
 /***/ 3264:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const execa = __nccwpck_require__(5447);
 const core = __nccwpck_require__(2186);
+const execa = __nccwpck_require__(5447);
 
 const exec = (file, options) => {
   core.debug(`running command: ${file} ${(options || []).join(" ")}`);
@@ -16489,8 +16489,8 @@ module.exports = {
 /***/ 8396:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { getOctokit } = __nccwpck_require__(5438);
 const { context } = __nccwpck_require__(5438);
+const { getOctokit } = __nccwpck_require__(5438);
 
 let octokit;
 
@@ -16499,8 +16499,8 @@ const initOctokit = (token) => {
 };
 
 const getRepo = async (owner, repo) => {
-  owner ||= context.repo.owner;
-  repo ||= context.repo.repo;
+  owner ??= context.repo.owner;
+  repo ??= context.repo.repo;
   const res = await octokit.rest.repos.get({
     owner,
     repo,
@@ -16567,7 +16567,7 @@ module.exports = {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186);
-const { initOctokit, getRepo } = __nccwpck_require__(8396);
+const { getRepo, initOctokit } = __nccwpck_require__(8396);
 const { logJson } = __nccwpck_require__(6254);
 
 const getInputs = async () => {
@@ -16653,28 +16653,28 @@ module.exports = {
 /***/ 1713:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
+const path = __nccwpck_require__(1017);
 const core = __nccwpck_require__(2186);
 const micromatch = __nccwpck_require__(6228);
 const { createConversions, convert } = __nccwpck_require__(4255);
 const {
+  commit,
+  createBranch,
+  fetchRemote,
+  getDiffCommits,
   getGitCredentials,
-  setGitCredentials,
+  getLatestCommit,
   listFiles,
   listDiffFilesWithStatus,
   merge,
-  commit,
   push,
-  fetchRemote,
-  createBranch,
-  getLatestCommit,
   reset,
-  getDiffCommits,
+  setGitCredentials,
 } = __nccwpck_require__(109);
+const { addLabels, createPr, listPrs, updatePr } = __nccwpck_require__(8396);
 const { getInputs } = __nccwpck_require__(6);
-const { createPr, listPrs, updatePr, addLabels } = __nccwpck_require__(8396);
-const { logJson, ensurePrefix } = __nccwpck_require__(6254);
+const { ensurePrefix, logJson } = __nccwpck_require__(6254);
 
 async function main() {
   const inputs = await getInputs();

@@ -1,25 +1,25 @@
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
 const core = require("@actions/core");
 const micromatch = require("micromatch");
 const { createConversions, convert } = require("./convert");
 const {
+  commit,
+  createBranch,
+  fetchRemote,
+  getDiffCommits,
   getGitCredentials,
-  setGitCredentials,
+  getLatestCommit,
   listFiles,
   listDiffFilesWithStatus,
   merge,
-  commit,
   push,
-  fetchRemote,
-  createBranch,
-  getLatestCommit,
   reset,
-  getDiffCommits,
+  setGitCredentials,
 } = require("./git");
+const { addLabels, createPr, listPrs, updatePr } = require("./github");
 const { getInputs } = require("./input");
-const { createPr, listPrs, updatePr, addLabels } = require("./github");
-const { logJson, ensurePrefix } = require("./util");
+const { ensurePrefix, logJson } = require("./util");
 
 async function main() {
   const inputs = await getInputs();

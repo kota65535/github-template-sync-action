@@ -21,11 +21,6 @@ function merge(branch) {
   exec("git", ["reset"]);
 }
 
-function restore(path) {
-  exec("git", ["reset", path]);
-  exec("git", ["checkout", path]);
-}
-
 function listFiles() {
   const { stdout } = exec("git", ["ls-files"]);
   return stdout.split("\n").filter((s) => s);
@@ -116,7 +111,6 @@ module.exports = {
   fetchRemote,
   createBranch,
   merge,
-  restore,
   listFiles,
   listDiffFiles,
   listDiffFilesWithStatus,

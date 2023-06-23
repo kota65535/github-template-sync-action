@@ -16381,11 +16381,6 @@ function merge(branch) {
   exec("git", ["reset"]);
 }
 
-function restore(path) {
-  exec("git", ["reset", path]);
-  exec("git", ["checkout", path]);
-}
-
 function listFiles() {
   const { stdout } = exec("git", ["ls-files"]);
   return stdout.split("\n").filter((s) => s);
@@ -16476,7 +16471,6 @@ module.exports = {
   fetchRemote,
   createBranch,
   merge,
-  restore,
   listFiles,
   listDiffFiles,
   listDiffFilesWithStatus,
@@ -16730,7 +16724,10 @@ async function sync(inputs) {
     replaceFiles(changedFiles, inputs.fromName, inputs.toName);
     changedFiles = renameFiles(changedFiles, inputs.fromName, inputs.toName);
     deletedFiles = renameFiles(deletedFiles, inputs.fromName, inputs.toName);
-    logJson(`replace/renamed ${changedFiles.length + deletedFiles.length} files`, changedFiles.concat(deletedFiles));
+    logJson(
+      `replaced & renamed ${changedFiles.length + deletedFiles.length} files`,
+      changedFiles.concat(deletedFiles)
+    );
     commit(changedFiles, "renamed");
     reset();
   }
@@ -16865,7 +16862,9 @@ async function createOrUpdatePr(inputs) {
     const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
     prNum = res.number;
   }
-  await addLabels(prNum, inputs.prLabels);
+  if (inputs.prLabels.length > 0) {
+    await addLabels(prNum, inputs.prLabels);
+  }
 }
 
 module.exports = {

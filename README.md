@@ -9,7 +9,9 @@ template repository changes. This action handles it for you.
 
 ## Features
 
-- Creates PR that merges template repository changes
+Creates PR that includes the following changes.
+
+- Merges the upstream template repository changes
 - Replaces & Renames files and directories of the template repository before merge
   - This does the same as [github-template-rename-action](https://github.com/kota65535/github-template-rename-action)
 - Minimizes diff by remembering the last synced commit

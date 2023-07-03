@@ -79,19 +79,16 @@ async function sync(inputs) {
   logJson(`merging ${changedFiles.length} files`, changedFiles);
   merge(workingBranch);
   commit(changedFiles, "changed files");
-  reset();
 
   // Delete files which has been deleted in the template repository
   deletedFiles = deletedFiles.filter((f) => fs.existsSync(f));
   deletedFiles.forEach((f) => fs.rmSync(f));
   logJson(`deleted ${deletedFiles.length} files`, deletedFiles);
   commit(deletedFiles, "deleted files");
-  reset();
 
   // Update templatesync file
   fs.writeFileSync(inputs.templateSyncFile, latestCommit, "utf8");
   commit([inputs.templateSyncFile], "updated template sync file");
-  reset();
 
   if (inputs.dryRun) {
     core.info("Skip creating PR because dry-run is true");

@@ -20885,9 +20885,10 @@ const core = __nccwpck_require__(2186);
 const execa = __nccwpck_require__(5447);
 
 const exec = (file, options) => {
-  core.info(`running command: ${file} ${(options || []).join(" ")}`);
+  core.startGroup(`running command: ${file} ${(options || []).join(" ")}`);
   const res = execa.sync(file, options);
   core.info(res.stdout);
+  core.endGroup();
   return res;
 };
 
@@ -21319,21 +21320,18 @@ async function sync(inputs) {
   logJson(`ignored ${changeIgnored.length + deleteIgnored.length} files`, changeIgnored.concat(deleteIgnored));
 
   // Merge
-  logJson(`merging ${changedFiles.length} files`, changedFiles);
   merge(workingBranch);
   commit(changedFiles, "changed files");
-  reset();
 
   // Delete files which has been deleted in the template repository
-  logJson(`deleting ${deletedFiles.length} files`, deletedFiles);
+  deletedFiles = deletedFiles.filter((f) => fs.existsSync(f));
   deletedFiles.forEach((f) => fs.rmSync(f));
+  logJson(`deleted ${deletedFiles.length} files`, deletedFiles);
   commit(deletedFiles, "deleted files");
-  reset();
 
   // Update templatesync file
   fs.writeFileSync(inputs.templateSyncFile, latestCommit, "utf8");
   commit([inputs.templateSyncFile], "updated template sync file");
-  reset();
 
   if (inputs.dryRun) {
     core.info("Skip creating PR because dry-run is true");

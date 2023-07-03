@@ -82,8 +82,9 @@ async function sync(inputs) {
   reset();
 
   // Delete files which has been deleted in the template repository
-  logJson(`deleting ${deletedFiles.length} files`, deletedFiles);
+  deletedFiles = deletedFiles.filter((f) => fs.existsSync(f));
   deletedFiles.forEach((f) => fs.rmSync(f));
+  logJson(`deleted ${deletedFiles.length} files`, deletedFiles);
   commit(deletedFiles, "deleted files");
   reset();
 

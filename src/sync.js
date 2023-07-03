@@ -76,7 +76,6 @@ async function sync(inputs) {
   logJson(`ignored ${changeIgnored.length + deleteIgnored.length} files`, changeIgnored.concat(deleteIgnored));
 
   // Merge
-  logJson(`merging ${changedFiles.length} files`, changedFiles);
   merge(workingBranch);
   commit(changedFiles, "changed files");
 

@@ -34,7 +34,7 @@ const createPr = async (title, head, base, body) => {
     title,
     head,
     base,
-    body
+    body,
   });
   return res.data;
 };
@@ -47,7 +47,7 @@ const updatePr = async (prNum, title, head, base, body) => {
     title,
     head,
     base,
-    body
+    body,
   });
   return res.data;
 };

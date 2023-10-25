@@ -17,5 +17,5 @@ function ensurePrefix(prefix, str) {
 module.exports = {
   toJson,
   logJson,
-  ensurePrefix
+  ensurePrefix,
 };

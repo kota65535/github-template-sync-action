@@ -55,8 +55,8 @@ const getInputs = async () => {
   if (!prBase) {
     prBase = repo.default_branch;
   }
-  
-  const createdAt = repo.created_at
+
+  const createdAt = repo.created_at;
 
   const ret = {
     template,

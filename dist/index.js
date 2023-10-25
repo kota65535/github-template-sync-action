@@ -558,7 +558,7 @@ class OidcClient {
                 .catch(error => {
                 throw new Error(`Failed to get ID Token. \n 
         Error Code : ${error.statusCode}\n 
-        Error Message: ${error.result.message}`);
+        Error Message: ${error.message}`);
             });
             const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
             if (!id_token) {
@@ -20812,14 +20812,7 @@ function wrappy (fn, cb) {
 /***/ 4255:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const {
-  camelCase,
-  snakeCase,
-  capitalCase,
-  constantCase,
-  noCase,
-  paramCase,
-} = __nccwpck_require__(9091);
+const { camelCase, snakeCase, capitalCase, constantCase, noCase, paramCase } = __nccwpck_require__(9091);
 
 function createConversions(fromName, toName) {
   return [
@@ -21089,7 +21082,7 @@ const createPr = async (title, head, base, body) => {
     title,
     head,
     base,
-    body
+    body,
   });
   return res.data;
 };
@@ -21102,7 +21095,7 @@ const updatePr = async (prNum, title, head, base, body) => {
     title,
     head,
     base,
-    body
+    body,
   });
   return res.data;
 };
@@ -21189,8 +21182,8 @@ const getInputs = async () => {
   if (!prBase) {
     prBase = repo.default_branch;
   }
-  
-  const createdAt = repo.created_at
+
+  const createdAt = repo.created_at;
 
   const ret = {
     template,
@@ -21503,7 +21496,7 @@ function ensurePrefix(prefix, str) {
 module.exports = {
   toJson,
   logJson,
-  ensurePrefix
+  ensurePrefix,
 };
 
 

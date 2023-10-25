@@ -20905,7 +20905,8 @@ module.exports = {
 const core = __nccwpck_require__(2186);
 const { exec } = __nccwpck_require__(3264);
 
-const extraHeaderKey = `http.https://github.com/.extraHeader`;
+const GITHUB_HOST = "github.com";
+const extraHeaderKey = `http.https://${GITHUB_HOST}/.extraHeader`;
 
 function fetchRemote(fullName, remote) {
   exec("git", ["remote", "add", remote, `https://github.com/${fullName}`]);
@@ -20940,8 +20941,12 @@ function getLatestCommitBefore(datetime) {
   return stdout;
 }
 
-function listDiffFiles(fromCommit) {
-  const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
+function listDiffFiles(fromCommit, toCommit) {
+  const options = ["diff-tree", "--no-commit-id", "--name-only", "-r", fromCommit];
+  if (toCommit) {
+    options.push(toCommit);
+  }
+  const { stdout } = exec("git", options);
   return stdout.split("\n").filter((s) => s);
 }
 
@@ -21025,6 +21030,7 @@ function getDiffCommits(refA, refB) {
 }
 
 module.exports = {
+  GITHUB_HOST,
   fetchRemote,
   createBranch,
   merge,
@@ -21076,18 +21082,19 @@ const addLabels = async (prNum, labels) => {
   return res.data;
 };
 
-const createPr = async (title, head, base) => {
+const createPr = async (title, head, base, body) => {
   const res = await octokit.rest.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
     title,
     head,
     base,
+    body
   });
   return res.data;
 };
 
-const updatePr = async (prNum, title, head, base) => {
+const updatePr = async (prNum, title, head, base, body) => {
   const res = await octokit.rest.pulls.update({
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -21095,6 +21102,7 @@ const updatePr = async (prNum, title, head, base) => {
     title,
     head,
     base,
+    body
   });
   return res.data;
 };
@@ -21258,6 +21266,8 @@ const {
   push,
   reset,
   getLatestCommitBefore,
+  listDiffFiles,
+  GITHUB_HOST,
 } = __nccwpck_require__(109);
 const { addLabels, createPr, listPrs, updatePr } = __nccwpck_require__(8396);
 const { ensurePrefix, logJson } = __nccwpck_require__(6254);
@@ -21283,6 +21293,8 @@ async function sync(inputs) {
 
   // Get the latest commit of the template repository
   const latestCommit = getLatestCommit();
+
+  const prBody = createSyncSummary(inputs.template, inputs.ignorePaths, lastSyncCommit);
 
   // Get changed files from the last synchronized commit to HEAD
   let changedFiles, deletedFiles;
@@ -21343,7 +21355,7 @@ async function sync(inputs) {
 
   // Create PR if there is any commit
   if (getDiffCommits(prBaseWithRemote, inputs.prBranch).length > 0) {
-    await createOrUpdatePr(inputs);
+    await createOrUpdatePr(inputs, prBody);
   }
 }
 
@@ -21422,16 +21434,36 @@ function getDirsFromFiles(files) {
   return ret;
 }
 
-async function createOrUpdatePr(inputs) {
+function createSyncSummary(template, ignorePaths, lastSyncCommit) {
+  const syncedCommits = getDiffCommits(lastSyncCommit, "HEAD");
+  const templateUrl = `https://${GITHUB_HOST}/${template}`;
+  let body = `## Commits synced from [${template}](${templateUrl})\n`;
+  body += syncedCommits
+    .map((c) => {
+      const [hash, ...rest] = c.split(" ");
+      const message = rest.join(" ");
+      const files = listDiffFiles(hash);
+      core.info(message);
+      core.info(files);
+      const shouldIgnore = micromatch(files, ignorePaths).length === files.length;
+      return shouldIgnore ? null : `- [${message}](${templateUrl}/commit/${hash})`;
+    })
+    .filter((s) => s)
+    .join("\n");
+  core.info(body);
+  return body;
+}
+
+async function createOrUpdatePr(inputs, body) {
   const prs = await listPrs(inputs.prBranch, inputs.prBase);
   let prNum;
   if (prs.length) {
     prNum = prs[0].number;
     core.info(`updating existing PR #${prNum}`);
-    await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase);
+    await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase, body);
   } else {
     core.info("creating PR");
-    const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
+    const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase, body);
     prNum = res.number;
   }
   if (inputs.prLabels.length > 0) {

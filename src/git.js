@@ -1,7 +1,8 @@
 const core = require("@actions/core");
 const { exec } = require("./exec");
 
-const extraHeaderKey = `http.https://github.com/.extraHeader`;
+const GITHUB_HOST = "github.com";
+const extraHeaderKey = `http.https://${GITHUB_HOST}/.extraHeader`;
 
 function fetchRemote(fullName, remote) {
   exec("git", ["remote", "add", remote, `https://github.com/${fullName}`]);
@@ -36,8 +37,12 @@ function getLatestCommitBefore(datetime) {
   return stdout;
 }
 
-function listDiffFiles(fromCommit) {
-  const { stdout } = exec("git", ["diff", "--name-only", fromCommit, "HEAD"]);
+function listDiffFiles(fromCommit, toCommit) {
+  const options = ["diff-tree", "--no-commit-id", "--name-only", "-r", fromCommit];
+  if (toCommit) {
+    options.push(toCommit);
+  }
+  const { stdout } = exec("git", options);
   return stdout.split("\n").filter((s) => s);
 }
 
@@ -121,6 +126,7 @@ function getDiffCommits(refA, refB) {
 }
 
 module.exports = {
+  GITHUB_HOST,
   fetchRemote,
   createBranch,
   merge,

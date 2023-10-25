@@ -14,6 +14,8 @@ const {
   push,
   reset,
   getLatestCommitBefore,
+  listDiffFiles,
+  GITHUB_HOST,
 } = require("./git");
 const { addLabels, createPr, listPrs, updatePr } = require("./github");
 const { ensurePrefix, logJson } = require("./util");
@@ -39,6 +41,8 @@ async function sync(inputs) {
 
   // Get the latest commit of the template repository
   const latestCommit = getLatestCommit();
+
+  const prBody = createSyncSummary(inputs.template, inputs.ignorePaths, lastSyncCommit);
 
   // Get changed files from the last synchronized commit to HEAD
   let changedFiles, deletedFiles;
@@ -99,7 +103,7 @@ async function sync(inputs) {
 
   // Create PR if there is any commit
   if (getDiffCommits(prBaseWithRemote, inputs.prBranch).length > 0) {
-    await createOrUpdatePr(inputs);
+    await createOrUpdatePr(inputs, prBody);
   }
 }
 
@@ -178,16 +182,36 @@ function getDirsFromFiles(files) {
   return ret;
 }
 
-async function createOrUpdatePr(inputs) {
+function createSyncSummary(template, ignorePaths, lastSyncCommit) {
+  const syncedCommits = getDiffCommits(lastSyncCommit, "HEAD");
+  const templateUrl = `https://${GITHUB_HOST}/${template}`;
+  let body = `## Commits synced from [${template}](${templateUrl})\n`;
+  body += syncedCommits
+    .map((c) => {
+      const [hash, ...rest] = c.split(" ");
+      const message = rest.join(" ");
+      const files = listDiffFiles(hash);
+      core.info(message);
+      core.info(files);
+      const shouldIgnore = micromatch(files, ignorePaths).length === files.length;
+      return shouldIgnore ? null : `- [${message}](${templateUrl}/commit/${hash})`;
+    })
+    .filter((s) => s)
+    .join("\n");
+  core.info(body);
+  return body;
+}
+
+async function createOrUpdatePr(inputs, body) {
   const prs = await listPrs(inputs.prBranch, inputs.prBase);
   let prNum;
   if (prs.length) {
     prNum = prs[0].number;
     core.info(`updating existing PR #${prNum}`);
-    await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase);
+    await updatePr(prNum, inputs.prTitle, inputs.prBranch, inputs.prBase, body);
   } else {
     core.info("creating PR");
-    const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase);
+    const res = await createPr(inputs.prTitle, inputs.prBranch, inputs.prBase, body);
     prNum = res.number;
   }
   if (inputs.prLabels.length > 0) {

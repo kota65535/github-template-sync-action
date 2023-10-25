@@ -27,18 +27,19 @@ const addLabels = async (prNum, labels) => {
   return res.data;
 };
 
-const createPr = async (title, head, base) => {
+const createPr = async (title, head, base, body) => {
   const res = await octokit.rest.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
     title,
     head,
     base,
+    body
   });
   return res.data;
 };
 
-const updatePr = async (prNum, title, head, base) => {
+const updatePr = async (prNum, title, head, base, body) => {
   const res = await octokit.rest.pulls.update({
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -46,6 +47,7 @@ const updatePr = async (prNum, title, head, base) => {
     title,
     head,
     base,
+    body
   });
   return res.data;
 };
